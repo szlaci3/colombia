@@ -42,6 +42,46 @@ test("serves a compiled JavaScript module and starts the editor", async ({
   expect(errors).toEqual([]);
 });
 
+test("saves a named project and version on the deployment and prepares its PDF", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Projects and saved versions" })
+    .click();
+  await page.getByLabel("New project name").fill("Deployment workshop");
+  await page
+    .getByRole("button", { name: "Create project", exact: true })
+    .click();
+  await expect(
+    page.getByRole("textbox", { name: "Project name", exact: true }),
+  ).toHaveText("Deployment workshop");
+  await page
+    .getByRole("button", { name: "Projects and saved versions" })
+    .click();
+  await page
+    .getByLabel("Version name", { exact: true })
+    .fill("Ready for review");
+  await page.getByRole("button", { name: "Save version", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Restore Ready for review" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Close dialog" }).click();
+  await page.reload();
+  await expect(
+    page.getByRole("textbox", { name: "Project name", exact: true }),
+  ).toHaveText("Deployment workshop");
+  await page.getByRole("button", { name: "Share prototype" }).click();
+  await page.getByRole("button", { name: /Take it to the meeting/ }).click();
+  await page.getByLabel("PDF templates").selectOption("all");
+  await expect(page.locator(".pdf-template")).toHaveCount(6);
+  const output = await page.pdf({
+    preferCSSPageSize: true,
+    printBackground: true,
+  });
+  expect(output.subarray(0, 5).toString()).toBe("%PDF-");
+});
+
 for (const template of [
   "webshop",
   "kanban",

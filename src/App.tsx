@@ -33,6 +33,7 @@ import {
   Download,
   ExternalLink,
   FileJson,
+  FolderOpen,
   Layers,
   LayoutDashboard,
   Leaf,
@@ -57,6 +58,18 @@ import { blockNames, SortableBlock } from "./components/Blocks";
 import { Dialog } from "./components/Dialog";
 import { Editable } from "./components/Editable";
 import { WebsiteImport } from "./components/WebsiteImport";
+import { Projects } from "./components/Projects";
+import { PdfPreview } from "./components/PdfPreview";
+import {
+  loadWorkspace,
+  readLibrary,
+  saveWorkspace,
+  openWorkspace,
+  removeWorkspace,
+  recoverLibrary,
+  type Library,
+  type ProjectRef,
+} from "./workspace";
 import { appendImportedSections } from "./content";
 import {
   createBlock,
@@ -73,13 +86,7 @@ import {
   type Project,
   type ThemeId,
 } from "./model";
-import {
-  loadProject,
-  makeShareUrl,
-  MAX_PROJECT_SIZE,
-  parseProject,
-  saveProject,
-} from "./storage";
+import { makeShareUrl, MAX_PROJECT_SIZE, parseProject } from "./storage";
 
 const pages = {
   webshop: {
@@ -163,6 +170,10 @@ const library: {
   },
   { type: "text", icon: Layers, description: "Tell the rest of your story." },
 ];
+const browserStore = {
+  getItem: (key: string) => localStorage.getItem(key),
+  setItem: (key: string, value: string) => localStorage.setItem(key, value),
+};
 function readPage(): PageId {
   const page = new URLSearchParams(location.search).get("template");
   return pageIds.includes(page as PageId) ? (page as PageId) : "webshop";
@@ -185,9 +196,7 @@ function duplicateBlock(block: Block): Block {
 }
 
 export default function App() {
-  const [initial] = useState(() =>
-    loadProject({ getItem: (key) => localStorage.getItem(key) }, location.hash),
-  );
+  const [initial] = useState(() => loadWorkspace(browserStore, location.hash));
   const [history, dispatch] = useReducer(historyReducer, {
     past: [],
     present: initial.project,
@@ -200,7 +209,7 @@ export default function App() {
   const [inspector, setInspector] = useState<"brand" | "layers">("brand");
   const [selected, setSelected] = useState<string | null>(null);
   const [modal, setModal] = useState<
-    "share" | "library" | "help" | "reset" | "style" | null
+    "share" | "library" | "help" | "reset" | "style" | "projects" | null
   >(null);
   const [toast, setToast] = useState("");
   const [notice, setNotice] = useState(initial.notice ?? "");
@@ -213,6 +222,14 @@ export default function App() {
   );
   const [mobileMenu, setMobileMenu] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
+  const activeRef = useRef<ProjectRef>(initial.ref);
+  const [projectLibrary, setProjectLibrary] = useState<Library>({
+    version: 1,
+    activeId: null,
+    entries: [],
+  });
+  const [libraryError, setLibraryError] = useState("");
+  const [pdfOpen, setPdfOpen] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const sensors = useSensors(
@@ -278,20 +295,30 @@ export default function App() {
   useEffect(() => {
     const openSnapshot = () => {
       if (!location.hash.startsWith("#project=")) return;
-      const loaded = loadProject(
-        { getItem: (key) => localStorage.getItem(key) },
-        location.hash,
-      );
+      if (autoSave) {
+        try {
+          activeRef.current = saveWorkspace(
+            browserStore,
+            activeRef.current,
+            project,
+          );
+        } catch (error) {
+          setToast((error as Error).message);
+          return;
+        }
+      }
+      const loaded = loadWorkspace(browserStore, location.hash);
+      activeRef.current = loaded.ref;
       setAutoSave(!loaded.shared && !loaded.recovered);
       setIsShared(!!loaded.shared);
-      dispatch({ type: "change", project: loaded.project });
+      dispatch({ type: "open", project: loaded.project });
       setNotice(loaded.notice ?? "");
       setSelected(null);
       setPage(readPage());
     };
     window.addEventListener("hashchange", openSnapshot);
     return () => window.removeEventListener("hashchange", openSnapshot);
-  }, []);
+  }, [project, autoSave]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(""), 5000);
@@ -300,15 +327,21 @@ export default function App() {
   useEffect(() => {
     if (!autoSave) return;
     setSaveStatus("saving");
-    const save = () =>
-      setSaveStatus(
-        saveProject(
-          { setItem: (key, value) => localStorage.setItem(key, value) },
+    const targetId = activeRef.current.id;
+    const save = () => {
+      if (activeRef.current.id !== targetId) return;
+      try {
+        activeRef.current = saveWorkspace(
+          browserStore,
+          activeRef.current,
           project,
-        )
-          ? "saved"
-          : "error",
-      );
+        );
+        setSaveStatus("saved");
+      } catch (error) {
+        setSaveStatus("error");
+        setLibraryError((error as Error).message);
+      }
+    };
     const timer = setTimeout(save, 350);
     const pagehide = () => {
       save();
@@ -326,6 +359,7 @@ export default function App() {
   }, [project, autoSave]);
   useEffect(() => {
     function keydown(event: KeyboardEvent) {
+      if (pdfOpen) return;
       if (event.key === "Escape" && !modal) {
         setPreview(false);
         setMobileMenu(false);
@@ -348,7 +382,7 @@ export default function App() {
     }
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
-  }, [modal]);
+  }, [modal, pdfOpen]);
 
   function setTheme(preset: ThemeId) {
     change((draft) => {
@@ -382,18 +416,19 @@ export default function App() {
     );
     setToast(`${blockNames[type]} added. Make it yours.`);
   }
-  function exportProject() {
-    const blob = new Blob([JSON.stringify(project)], {
+  function downloadProject(snapshot: Project) {
+    const blob = new Blob([JSON.stringify(snapshot)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `${project.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "prototype"}.formlane.json`;
+    anchor.download = `${snapshot.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "prototype"}.formlane.json`;
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     setToast("Project exported. A little backup for your ideas.");
   }
+  const exportProject = () => downloadProject(project);
   async function importProject(file?: File) {
     if (!file) return;
     try {
@@ -433,15 +468,15 @@ export default function App() {
     }
   }
   function keepCopy() {
-    const saved = saveProject(
-      { setItem: (key, value) => localStorage.setItem(key, value) },
-      project,
-    );
-    if (!saved) {
+    try {
+      recoverLibrary(browserStore);
+      const ref = isShared ? { id: uid(), revision: null } : activeRef.current;
+      activeRef.current = saveWorkspace(browserStore, ref, project, {
+        activate: true,
+      });
+    } catch (error) {
       setSaveStatus("error");
-      setToast(
-        "Browser storage is unavailable. Export your project to keep it.",
-      );
+      setToast((error as Error).message);
       return;
     }
     setAutoSave(true);
@@ -452,6 +487,61 @@ export default function App() {
     window.history.replaceState(null, "", url);
     setToast("This copy is now your saved project.");
   }
+  function refreshProjects() {
+    setProjectLibrary(readLibrary(browserStore));
+  }
+  function libraryAction(action: () => void) {
+    try {
+      action();
+      setLibraryError("");
+      return true;
+    } catch (error) {
+      setLibraryError((error as Error).message);
+      return false;
+    }
+  }
+  function flushProject() {
+    try {
+      activeRef.current = saveWorkspace(
+        browserStore,
+        activeRef.current,
+        project,
+      );
+      setSaveStatus("saved");
+    } catch (error) {
+      setSaveStatus("error");
+      throw error;
+    }
+  }
+  function showProjects() {
+    libraryAction(() => {
+      if (autoSave) flushProject();
+    });
+    // Keep older projects/versions reachable when saving the current draft fails.
+    try {
+      refreshProjects();
+    } catch (error) {
+      setLibraryError((error as Error).message);
+    }
+    setModal("projects");
+    setMobileMenu(false);
+  }
+  function openedProject(entry: {
+    id: string;
+    revision: number;
+    project: Project;
+  }) {
+    activeRef.current = { id: entry.id, revision: entry.revision };
+    dispatch({ type: "open", project: entry.project });
+    setAutoSave(true);
+    setIsShared(false);
+    setNotice("");
+    setSelected(null);
+    setModal(null);
+    const url = new URL(location.href);
+    url.hash = "";
+    window.history.replaceState(null, "", url);
+  }
   const saveLabel = !autoSave
     ? "Unsaved draft"
     : saveStatus === "saved"
@@ -459,6 +549,20 @@ export default function App() {
       : saveStatus === "saving"
         ? "Saving…"
         : "Could not save — export a backup";
+
+  if (pdfOpen)
+    return (
+      <PdfPreview
+        project={project}
+        currentPage={page}
+        titles={pages}
+        themeStyle={themeStyle}
+        close={() => {
+          setPdfOpen(false);
+          setModal("share");
+        }}
+      />
+    );
 
   return (
     <div
@@ -486,13 +590,19 @@ export default function App() {
             </span>
             formlane<span className="wordmark-dot">.</span>
           </a>
-          <div className="workspace-switch">
-            <span className="workspace-avatar">P</span>
+          <button
+            className="workspace-switch"
+            aria-label="Projects and saved versions"
+            onClick={showProjects}
+          >
+            <span className="workspace-avatar" aria-hidden="true">
+              <FolderOpen size={16} />
+            </span>
             <div>
-              Personal workspace<small>A little room to explore</small>
+              Projects and <small>saved versions</small>
             </div>
-            <Leaf size={15} />
-          </div>
+            <ChevronDown size={15} />
+          </button>
           <div className="sidebar-label">
             PLAYGROUND <span>{String(pageIds.length).padStart(2, "0")}</span>
           </div>
@@ -656,7 +766,7 @@ export default function App() {
           <div className="notice save-failure" role="alert">
             <span>
               Your changes aren’t being saved. Export a project file to keep
-              this work.
+              this work. {libraryError}
             </span>
             <button onClick={exportProject}>Export backup</button>
           </div>
@@ -1259,7 +1369,103 @@ export default function App() {
             </div>
             <Download size={18} />
           </button>
+          <button
+            className="export-card"
+            onClick={() => {
+              setModal(null);
+              setPdfOpen(true);
+            }}
+          >
+            <span>
+              <Download size={24} />
+            </span>
+            <div>
+              <strong>Take it to the meeting</strong>
+              <small>Prepare PDF · current template or all six</small>
+            </div>
+            <ArrowRight size={18} />
+          </button>
         </Dialog>
+      )}
+      {modal === "projects" && (
+        <Projects
+          library={projectLibrary}
+          activeId={activeRef.current.id}
+          enabled={autoSave}
+          error={libraryError}
+          close={() => setModal(null)}
+          download={downloadProject}
+          create={(name, duplicate) =>
+            libraryAction(() => {
+              flushProject();
+              const next = duplicate
+                ? structuredClone(project)
+                : createProject();
+              next.name = name;
+              const ref = saveWorkspace(
+                browserStore,
+                { id: uid(), revision: null },
+                next,
+                { activate: true },
+              );
+              openedProject({ ...ref, revision: ref.revision!, project: next });
+              setToast(
+                duplicate
+                  ? "Project duplicated. Explore another direction."
+                  : "A fresh project, ready for your ideas.",
+              );
+            })
+          }
+          open={(id) =>
+            libraryAction(() => {
+              flushProject();
+              openedProject(openWorkspace(browserStore, id));
+            })
+          }
+          remove={(id) =>
+            libraryAction(() => {
+              removeWorkspace(browserStore, id);
+              try {
+                flushProject();
+              } finally {
+                refreshProjects();
+              }
+            })
+          }
+          saveVersion={(name) =>
+            libraryAction(() => {
+              activeRef.current = saveWorkspace(
+                browserStore,
+                activeRef.current,
+                project,
+                { versionName: name },
+              );
+              setSaveStatus("saved");
+              refreshProjects();
+              setToast(
+                "Version saved. This direction is here when you need it.",
+              );
+            })
+          }
+          restore={(snapshot) => {
+            dispatch({ type: "change", project: structuredClone(snapshot) });
+            setSelected(null);
+            setModal(null);
+            setToast("Version restored. Undo brings back your working draft.");
+          }}
+          removeVersion={(id) =>
+            libraryAction(() => {
+              activeRef.current = saveWorkspace(
+                browserStore,
+                activeRef.current,
+                project,
+                { removeVersion: id },
+              );
+              setSaveStatus("saved");
+              refreshProjects();
+            })
+          }
+        />
       )}
       {modal === "help" && (
         <Dialog

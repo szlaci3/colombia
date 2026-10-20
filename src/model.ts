@@ -478,8 +478,12 @@ export function moveCard(
 
 export type History = { past: Project[]; present: Project; future: Project[] };
 export type HistoryAction =
-  { type: "change"; project: Project } | { type: "undo" } | { type: "redo" };
+  | { type: "change" | "open"; project: Project }
+  | { type: "undo" }
+  | { type: "redo" };
 export function historyReducer(state: History, action: HistoryAction): History {
+  if (action.type === "open")
+    return { past: [], present: action.project, future: [] };
   if (action.type === "change") {
     if (JSON.stringify(action.project) === JSON.stringify(state.present))
       return state;

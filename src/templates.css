@@ -1,6 +1,10 @@
 .sidebar {
   overflow-y: auto;
 }
+.preview-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 .sidebar > * {
   flex-shrink: 0;
 }

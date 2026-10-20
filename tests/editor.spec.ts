@@ -337,6 +337,7 @@ test("recovers corrupted saved data without overwriting it", async ({
 }) => {
   await page.addInitScript(() => {
     if (!sessionStorage.getItem("recovery-test-initialized")) {
+      localStorage.removeItem("formlane.library.v1");
       localStorage.setItem("formlane.project.v1", "{broken");
       sessionStorage.setItem("recovery-test-initialized", "true");
     }
@@ -366,6 +367,7 @@ test("shows a save failure when browser storage is full and still exports", asyn
     };
   });
   await page.reload();
+  await edit(page, "Hero headline", "A draft that cannot be saved");
   await expect(
     page.getByText("Could not save — export a backup"),
   ).toBeVisible();

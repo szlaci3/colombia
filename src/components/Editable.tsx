@@ -47,7 +47,8 @@ export function Editable({
       event.currentTarget.blur();
     }
   }
-  if (preview) return <Tag className={className}>{value}</Tag>;
+  if (preview)
+    return <Tag className={`preview-text ${className}`}>{value}</Tag>;
   return (
     <Tag
       ref={ref}

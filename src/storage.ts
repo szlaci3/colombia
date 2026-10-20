@@ -60,7 +60,7 @@ export function loadProject(
       return {
         project: parseProject(json),
         notice:
-          "Shared snapshot opened. Your saved project is safe until you choose “Keep this copy”.",
+          "Shared snapshot opened. Choose “Keep this copy” to add it as a separate project on this device.",
         shared: true,
       };
     } catch {

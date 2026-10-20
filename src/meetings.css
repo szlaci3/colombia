@@ -1,0 +1,309 @@
+button.workspace-switch {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+}
+.workspace-switch:hover {
+  border-color: #375744;
+}
+.project-section {
+  margin-top: 26px;
+}
+.project-section > h3 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+}
+.project-section > h3 small {
+  font-size: 12px;
+  color: #60665f;
+}
+.project-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+}
+.project-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 15px 0;
+  border-bottom: 1px solid #e2e4dc;
+}
+.project-row > div:first-child {
+  flex: 1;
+  min-width: 130px;
+  overflow-wrap: anywhere;
+}
+.project-row strong {
+  font-size: 14px;
+}
+.project-row small {
+  display: block;
+  color: #60665f;
+  font-size: 11px;
+  margin-top: 6px;
+}
+.project-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.project-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin: 20px 0;
+}
+.project-form label {
+  flex-basis: 100%;
+  font-size: 12px;
+  font-weight: 600;
+}
+.project-form input {
+  flex: 1;
+  min-width: 140px;
+  border: 1px solid #c8cdc3;
+  border-radius: 6px;
+  padding: 11px;
+  background: white;
+  color: #28332b;
+  font: inherit;
+  font-size: 13px;
+}
+.project-message,
+.project-confirm {
+  background: #f3f1e8;
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.project-confirm {
+  flex-basis: 100%;
+}
+.project-confirm p {
+  margin: 0 0 12px;
+}
+.project-confirm .button + .button {
+  margin-left: 8px;
+}
+.pdf-export {
+  background: #eceee7;
+  min-height: 100vh;
+}
+.pdf-controls {
+  padding: 24px;
+  background: #fff;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pdf-controls > div {
+  flex: 1;
+  min-width: 250px;
+}
+.pdf-controls h1 {
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+.pdf-controls p {
+  font-size: 12px;
+  line-height: 1.7;
+  max-width: 480px;
+  color: #596354;
+}
+.pdf-controls label {
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+}
+.pdf-controls select {
+  padding: 10px;
+  max-width: 100%;
+  background: #fff;
+  color: #28332b;
+  border: 1px solid #c8cdc3;
+  border-radius: 6px;
+}
+.pdf-pages {
+  padding: 28px 16px;
+}
+.pdf-template {
+  width: 740px;
+  max-width: 100%;
+  margin: 0 auto 30px;
+  background: white;
+  padding: 20px;
+  box-shadow: 0 2px 16px #15231c12;
+}
+.pdf-page-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 0 0 15px;
+  align-items: baseline;
+  color: #344237;
+}
+.pdf-page-heading span {
+  flex: 1;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.pdf-page-heading strong {
+  font-size: 15px;
+}
+.pdf-page-heading small {
+  font-size: 10px;
+}
+.pdf-template .canvas-block {
+  cursor: default;
+}
+.pdf-template .prototype-canvas {
+  border-radius: 0;
+  box-shadow: none;
+}
+.pdf-template .table-scroll {
+  overflow: visible;
+}
+.pdf-template table {
+  table-layout: fixed;
+  min-width: 0;
+  width: 100%;
+}
+.pdf-template :is(th, td) {
+  min-width: 0;
+  padding: 10px 6px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-size: 9px;
+}
+.pdf-template .status-pill {
+  white-space: normal;
+}
+.pdf-template .table-name {
+  white-space: normal;
+  font-size: inherit;
+  overflow-wrap: anywhere;
+}
+.pdf-template .board-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: visible;
+}
+.pdf-template .board-column {
+  min-width: 0;
+  width: 100%;
+  margin-bottom: 18px;
+}
+.pdf-template :is(h1, h2, h3, p, blockquote, .kanban-card) {
+  overflow-wrap: anywhere;
+}
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+  html,
+  body,
+  #root,
+  .pdf-export {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff;
+  }
+  .pdf-controls {
+    display: none !important;
+  }
+  .pdf-pages {
+    padding: 0;
+  }
+  .pdf-template {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+    break-after: page;
+  }
+  .pdf-template:last-child {
+    break-after: auto;
+  }
+  .pdf-template .prototype-canvas {
+    overflow: visible;
+    container-type: normal;
+  }
+  .pdf-template .canvas-block {
+    break-inside: auto;
+  }
+  .pdf-template
+    :is(
+      .hero-section,
+      .quote-section,
+      .text-section,
+      .product-card,
+      .board-card
+    ) {
+    break-inside: avoid;
+  }
+  .pdf-template :is(.table-section, .board-section) {
+    overflow: visible;
+  }
+  .pdf-template .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .pdf-template
+    :is(.pdf-page-heading, .section-heading, .column-heading, h2, h3) {
+    break-after: avoid;
+  }
+  .pdf-template thead {
+    display: table-header-group;
+  }
+  .pdf-template tr {
+    break-inside: avoid;
+  }
+  .pdf-template .board-column {
+    break-inside: auto;
+  }
+  .pdf-template .product-grid {
+    gap: 15px;
+  }
+  .pdf-template .hero-title {
+    font-size: 36px;
+  }
+  .pdf-template .text-metric p::first-line {
+    font-size: 32px;
+  }
+  .pdf-template .table-section {
+    padding: 20px 10px;
+  }
+  .pdf-template .text-post {
+    margin: 12px 22px;
+    padding: 17px;
+  }
+  .pdf-template .text-post > p {
+    margin-top: 12px;
+  }
+  .pdf-template .text-article {
+    padding: 20px 24px;
+  }
+  .pdf-template :is(.text-article, .text-post) > p {
+    font-size: 11px;
+    line-height: 1.7;
+  }
+  .pdf-template .prototype-footer {
+    break-before: avoid;
+    break-inside: avoid;
+  }
+  .pdf-template .board-card {
+    break-inside: avoid;
+  }
+}
