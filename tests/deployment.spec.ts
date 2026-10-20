@@ -91,6 +91,11 @@ if (process.env.FORMLANE_IMPORT_URL) {
     await expect(page.locator(".detected-colors")).toContainText(
       "linked stylesheet",
     );
+    await page
+      .getByText("Where these styles came from", { exact: true })
+      .click();
+    await expect(page.locator(".style-evidence dl > div")).toHaveCount(5);
+    await expect(page.locator(".style-evidence")).toContainText("Prototype:");
     await page.getByRole("button", { name: "Apply to all templates" }).click();
     await expect(page.locator(".prototype-canvas")).toHaveAttribute(
       "data-theme",

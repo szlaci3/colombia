@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Northstar — Formlane brand study</title>
+    <style>
+      :root {
+        --brand-primary: #663399;
+        --font-heading: Georgia, serif;
+      }
+      body {
+        background: #f6f2e9;
+        color: #222222;
+        font-family: Arial, sans-serif;
+        margin: 0;
+      }
+      main {
+        max-width: 700px;
+        margin: 10vh auto;
+        padding: 30px;
+      }
+      h1 {
+        font-family: var(--font-heading);
+        font-size: clamp(40px, 8vw, 72px);
+        font-weight: 400;
+        line-height: 1.1;
+      }
+      p {
+        max-width: 520px;
+        font-size: 17px;
+        line-height: 1.8;
+      }
+      .eyebrow {
+        color: var(--brand-primary);
+        font-size: 13px;
+        letter-spacing: 2px;
+      }
+      .action {
+        display: inline-block;
+        padding: 16px 24px;
+        background: #a03333;
+        color: white;
+        border-radius: 2px;
+        text-decoration: none;
+        margin-top: 20px;
+      }
+      #explore {
+        background: var(--brand-primary) !important;
+        border-radius: 12px;
+      }
+      .retired-campaign {
+        background: #ff0000;
+        --brand-primary: #ff0000;
+        font-family: Impact, sans-serif;
+      }
+      .action:hover {
+        background: #ff8800 !important;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #111111;
+          color: white;
+        }
+      }
+    </style>
+    <link rel="stylesheet" href="/examples/brand-study.css" />
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">NORTHSTAR / A BRAND STUDY</p>
+      <h1>A little clarity.<br />A new direction.</h1>
+      <p>
+        An original page for exploring Formlane’s style importer. Bring its
+        purple accent, editorial headings, and soft corners into your next
+        prototype.
+      </p>
+      <a id="explore" class="action" href="/" style="background: #225533"
+        >Explore Formlane</a
+      >
+      <p>
+        The importer reviews the static page. It explains which source styles it
+        selected, and you choose what to keep.
+      </p>
+    </main>
+  </body>
+</html>

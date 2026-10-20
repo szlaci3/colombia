@@ -32,6 +32,7 @@
     "postcss-value-parser": "^4.2.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "specificity": "^1.0.0",
     "turndown": "^7.2.4",
     "zod": "^4.6.7"
   },

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { ContentImport } from "./ContentImport";
+import { StyleEvidence } from "./StyleEvidence";
 import type { ContentSection } from "../content";
 import {
   paletteProblems,
@@ -74,7 +75,7 @@ export function WebsiteImport({
       const data = await response.json();
       if (!response.ok)
         throw new Error(
-          typeof data.error === "string"
+          typeof data?.error === "string"
             ? data.error
             : "This website could not be analyzed. Try another page.",
         );
@@ -162,6 +163,16 @@ export function WebsiteImport({
               Public HTTPS pages only. No login, screenshots, or source scripts
               are used.
             </p>
+            <button
+              className="content-example"
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                setUrl("https://formlane.netlify.app/examples/brand-study.html")
+              }
+            >
+              Try the brand study example
+            </button>
           </form>
           {busy && (
             <div className="import-progress" role="status">
@@ -205,13 +216,21 @@ export function WebsiteImport({
                 <span>Detected colors</span>
                 <div>
                   {result.colors.map((color) => (
-                    <span
+                    <button
                       key={color}
-                      title={color}
+                      type="button"
+                      title={`Use ${color} as accent`}
+                      aria-label={`Use ${color} as accent`}
                       style={{ background: color }}
+                      onClick={() =>
+                        setResult({
+                          ...result,
+                          palette: { ...result.palette, accent: color },
+                        })
+                      }
                     >
                       <span className="sr-only">{color}</span>
-                    </span>
+                    </button>
                   ))}
                 </div>
                 <small>
@@ -219,6 +238,9 @@ export function WebsiteImport({
                   {result.stylesheetCount === 1 ? "" : "s"} read
                 </small>
               </div>
+              <p className="source-color-hint">
+                Choose a detected color to try it as your accent.
+              </p>
               <div className="palette-review">
                 {(Object.keys(colorNames) as (keyof Palette)[]).map((key) => (
                   <label key={key}>
@@ -331,6 +353,7 @@ export function WebsiteImport({
                   />
                 )}
               </div>
+              <StyleEvidence result={result} />
               <details className="import-notes">
                 <summary>What was detected and adapted</summary>
                 <ul>

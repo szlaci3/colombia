@@ -16,7 +16,7 @@ import { createHandler } from "../netlify/functions/import-style.mts";
 import { paletteProblems } from "../src/theme";
 
 const html =
-  '<title>Northstar | Studio</title><meta property="og:site_name" content="Northstar"><link rel="stylesheet" href="/brand.css"><style>:root{--brand-primary: #663399;--page-background:#ffffff;--font-heading:"Georgia",serif}body{background:var(--page-background);color:#222222}h1{font-family:var(--font-heading)}button{background:var(--brand-primary);border-radius:.75rem}</style>';
+  '<title>Northstar | Studio</title><meta property="og:site_name" content="Northstar"><link rel="stylesheet" href="/brand.css"><style>:root{--brand-primary: #663399;--page-background:#ffffff;--font-heading:"Georgia",serif}body{background:var(--page-background);color:#222222}h1{font-family:var(--font-heading)}button{background:var(--brand-primary);border-radius:.75rem}</style><h1>Welcome</h1><button>Explore</button>';
 
 describe("style evidence and adaptation", () => {
   it("extracts actual CSS colors, variables, heading fonts, and corners", () => {
@@ -38,7 +38,7 @@ describe("style evidence and adaptation", () => {
   });
   it("adapts bright accents and dark source pages, and explains those changes", () => {
     const result = extractStyle(
-      "<style>body{background:#101010;color:#ffffff}button{background:#ffea00}</style>",
+      "<style>body{background:#101010;color:#ffffff}button{background:#ffea00}</style><button>Explore</button>",
       "https://example.com/",
       [],
     );

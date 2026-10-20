@@ -1,0 +1,8 @@
+/* This sheet follows the embedded styles in the original example page. */
+body {
+  background: #ffffff;
+}
+.action {
+  background: #245588;
+  border-radius: 6px;
+}

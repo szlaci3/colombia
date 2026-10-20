@@ -21,6 +21,15 @@ export const sourceSchema = z.object({
   fontName: z.string().max(120),
 });
 export const customThemeSchema = paletteSchema.extend({ source: sourceSchema });
+export const styleEvidenceSchema = z.object({
+  role: z.enum(["accent", "surface", "ink", "font", "radius"]),
+  selector: z.string().max(200),
+  property: z.string().max(80),
+  value: z.string().max(200),
+  source: z.string().max(160),
+  basis: z.enum(["matched", "token", "metadata", "fallback"]),
+});
+export type StyleEvidence = z.infer<typeof styleEvidenceSchema>;
 export const styleImportSchema = z.object({
   palette: paletteSchema,
   font: z.enum(["serif", "sans"]),
@@ -29,6 +38,7 @@ export const styleImportSchema = z.object({
   colors: z.array(hex).max(8),
   notes: z.array(z.string().max(300)).max(12),
   stylesheetCount: z.number().int().min(0).max(3),
+  evidence: z.array(styleEvidenceSchema).max(5).optional(),
 });
 export type StyleImport = z.infer<typeof styleImportSchema>;
 

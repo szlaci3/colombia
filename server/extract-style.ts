@@ -1,5 +1,4 @@
 import { load } from "cheerio";
-import postcss from "postcss";
 import valueParser from "postcss-value-parser";
 import Color from "colorjs.io";
 import {
@@ -7,8 +6,15 @@ import {
   readablePalette,
   styleImportSchema,
   type StyleImport,
+  type StyleEvidence,
 } from "../src/theme.ts";
 import { ImportError, publicUrl, fetchPublicText } from "./public-fetch.ts";
+import {
+  collectStyleObservations,
+  linkedStylesheetUrls,
+  type LinkedStylesheet,
+  type StyleObservation,
+} from "./style-cascade.ts";
 
 export function parseColor(value: string): string | null {
   try {
@@ -30,29 +36,13 @@ export function parseColor(value: string): string | null {
   }
 }
 export function stylesheetUrls(html: string, url: string): string[] {
-  const $ = load(html);
-  const urls = new Set<string>();
-  $("link[rel][href]").each((_, element) => {
-    if (
-      !($(element).attr("rel") ?? "")
-        .toLowerCase()
-        .split(/\s+/)
-        .includes("stylesheet")
-    )
-      return;
-    try {
-      urls.add(publicUrl($(element).attr("href")!, url).href);
-    } catch {
-      /* Unfetchable links contribute no styles. */
-    }
-  });
-  return [...urls].slice(0, 3);
+  return linkedStylesheetUrls(html, url);
 }
 
 export function extractStyle(
   html: string,
   url: string,
-  sheets: string[],
+  sheets: (string | LinkedStylesheet)[],
 ): StyleImport {
   const $ = load(html);
   const title = (
@@ -62,52 +52,37 @@ export function extractStyle(
   )
     .trim()
     .slice(0, 120);
-  const styles = [...sheets];
-  $("style").each((_, el) => {
-    styles.push($(el).text());
-  });
-  $("[style]").each((_, el) => {
-    const name = el.tagName;
-    styles.push(
-      `${/^[a-z][a-z0-9-]*$/i.test(name) ? name : "div"}{${$(el).attr("style")}}`,
-    );
-  });
-  const roots: ReturnType<typeof postcss.parse>[] = [];
-  for (const css of styles) {
-    try {
-      roots.push(postcss.parse(css));
-    } catch {
-      /* Invalid sheets are skipped rather than guessed. */
-    }
-  }
-  const variables = new Map<string, string>();
-  for (const root of roots)
-    root.walkDecls((decl) => {
-      if (decl.prop.startsWith("--")) variables.set(decl.prop, decl.value);
-    });
-  function resolve(value: string, depth = 0): string {
-    if (depth > 8) return "";
-    return value.replace(
-      /var\((--[\w-]+)(?:,\s*([^()]+))?\)/g,
-      (_, key: string, fallback: string) =>
-        resolve(variables.get(key) ?? fallback ?? "", depth + 1),
-    );
-  }
+  const sample = collectStyleObservations(html, url, sheets);
   const colors = new Map<
     string,
-    { score: number; accent: number; surface: number; ink: number }
+    {
+      score: number;
+      accent: number;
+      surface: number;
+      ink: number;
+      evidence: StyleObservation;
+    }
   >();
+  const proofs: {
+    color: string;
+    score: number;
+    evidence: StyleObservation;
+    role?: "accent" | "surface" | "ink";
+  }[] = [];
   function add(
     color: string | null,
     score: number,
+    evidence: StyleObservation,
     role?: "accent" | "surface" | "ink",
   ) {
     if (!color) return;
+    proofs.push({ color, score, evidence, role });
     const entry = colors.get(color) ?? {
       score: 0,
       accent: 0,
       surface: 0,
       ink: 0,
+      evidence,
     };
     entry.score += score;
     if (role) entry[role] += score;
@@ -116,94 +91,108 @@ export function extractStyle(
   const metaColor = parseColor(
     $('meta[name="theme-color"]').attr("content") ?? "",
   );
-  add(metaColor, 10, "accent");
+  add(
+    metaColor,
+    6,
+    {
+      property: "theme-color",
+      value: metaColor ?? "",
+      selector: 'meta[name="theme-color"]',
+      source: "Page metadata",
+      kind: "other",
+    },
+    "accent",
+  );
   let fontName = "";
   let fontScore = -1;
-  const radii: number[] = [];
-  for (const root of roots)
-    root.walkDecls((decl) => {
-      const prop = decl.prop.toLowerCase();
-      const value = resolve(decl.value);
-      const selector =
-        decl.parent?.type === "rule"
-          ? (decl.parent as postcss.Rule).selector
-          : "";
-      if (
-        prop === "font-family" ||
-        /--.*font.*(?:heading|display|family|sans|serif)/.test(prop)
-      ) {
-        const score = /h1|h2|heading|display/.test(selector + prop)
-          ? 5
-          : /body|html|:root/.test(selector)
-            ? 3
-            : 1;
-        const first = value
-          .split(",")[0]
-          .trim()
-          .replace(/^['"]|['"]$/g, "");
-        if (score > fontScore && first && !/var\(|url\(|[{};]/.test(first)) {
-          fontName = first.slice(0, 120);
-          fontScore = score;
-        }
+  let fontEvidence: StyleObservation | undefined;
+  const radii: { radius: number; evidence: StyleObservation; score: number }[] =
+    [];
+  for (const observation of sample.observations) {
+    const prop = observation.property.toLowerCase();
+    const value = observation.value;
+    if (
+      prop === "font-family" ||
+      /--.*font.*(?:heading|display|family|sans|serif)/.test(prop)
+    ) {
+      const score =
+        observation.kind === "heading"
+          ? 10
+          : prop.startsWith("--") && /heading|display/.test(prop)
+            ? 5
+            : observation.kind === "page"
+              ? 3
+              : 1;
+      const first = value
+        .split(",")[0]
+        .trim()
+        .replace(/^['"]|['"]$/g, "");
+      if (score > fontScore && first && !/var\(|url\(|[{};]/.test(first)) {
+        fontName = first.slice(0, 120);
+        fontScore = score;
+        fontEvidence = observation;
       }
-      if (prop === "border-radius" || /--.*radius/.test(prop)) {
-        const radius = value.match(/^(\d*\.?\d+)(px|rem)?$/);
-        if (radius)
-          radii.push(
-            Math.min(
-              24,
-              Math.round(Number(radius[1]) * (radius[2] === "rem" ? 16 : 1)),
-            ),
-          );
+    }
+    if (prop === "border-radius" || /--.*radius/.test(prop)) {
+      const radius = value.match(/^(\d*\.?\d+)(px|rem)?$/);
+      if (radius)
+        radii.push({
+          radius: Math.min(
+            24,
+            Math.round(Number(radius[1]) * (radius[2] === "rem" ? 16 : 1)),
+          ),
+          evidence: observation,
+          score:
+            observation.kind === "action"
+              ? 3
+              : observation.kind === "token"
+                ? 1
+                : 2,
+        });
+    }
+    if (
+      !/color|background|^--/.test(prop) ||
+      /font|radius|shadow|spacing|size/.test(prop)
+    )
+      continue;
+    let role: "accent" | "surface" | "ink" | undefined;
+    let score = 1;
+    if (observation.kind === "action" && /background|^color$/.test(prop)) {
+      role = "accent";
+      score = /background/.test(prop) ? 20 : 12;
+    } else if (
+      /primary|accent|brand/.test(prop) &&
+      !/foreground|text|contrast/.test(prop)
+    ) {
+      role = "accent";
+      score = 8;
+    } else if (/background/.test(prop) && observation.kind === "page") {
+      role = "surface";
+      score = 8;
+    } else if (
+      (prop === "color" && observation.kind === "page") ||
+      /--.*(?:text|foreground|ink)/.test(prop)
+    ) {
+      role = "ink";
+      score = 5;
+    } else if (/--.*(?:surface|background|bg)$/.test(prop)) {
+      role = "surface";
+      score = 5;
+    }
+    const direct = parseColor(value);
+    if (direct) {
+      add(direct, score, observation, role);
+      continue;
+    }
+    valueParser(value).walk((node) => {
+      if (node.type === "function") {
+        add(parseColor(valueParser.stringify(node)), score, observation, role);
+        return false;
       }
-      if (
-        !/color|background|^--/.test(prop) ||
-        /font|radius|shadow|spacing|size/.test(prop)
-      )
-        return;
-      let role: "accent" | "surface" | "ink" | undefined;
-      let score = 1;
-      if (
-        /primary|accent|brand/.test(prop) &&
-        !/foreground|text|contrast/.test(prop)
-      ) {
-        role = "accent";
-        score = 8;
-      } else if (
-        /background/.test(prop) &&
-        /(?:^|[\s,])(?:html|body)(?:$|[\s,.#:]|\[)/.test(selector)
-      ) {
-        role = "surface";
-        score = 8;
-      } else if (
-        (prop === "color" && /html|body/.test(selector)) ||
-        /--.*(?:text|foreground|ink)/.test(prop)
-      ) {
-        role = "ink";
-        score = 5;
-      } else if (
-        /button|\.btn|\.cta/.test(selector) &&
-        /background/.test(prop)
-      ) {
-        role = "accent";
-        score = 6;
-      } else if (/--.*(?:surface|background|bg)$/.test(prop)) {
-        role = "surface";
-        score = 5;
-      }
-      const direct = parseColor(value);
-      if (direct) {
-        add(direct, score, role);
-        return;
-      }
-      valueParser(value).walk((node) => {
-        if (node.type === "function") {
-          add(parseColor(valueParser.stringify(node)), score, role);
-          return false;
-        }
-        if (node.type === "word") add(parseColor(node.value), score, role);
-      });
+      if (node.type === "word")
+        add(parseColor(node.value), score, observation, role);
     });
+  }
   if (!colors.size)
     throw new ImportError(
       "No usable colors were found in this page’s static HTML or CSS. Try another page or use a curated theme.",
@@ -248,6 +237,42 @@ export function extractStyle(
     notes.push(
       "No simple corner radius was found; an 8px starting point is used.",
     );
+  const strongestRadii = radii
+    .filter(
+      (item) => item.score === Math.max(...radii.map((item) => item.score)),
+    )
+    .sort((a, b) => a.radius - b.radius);
+  const corner = strongestRadii[Math.floor(strongestRadii.length / 2)];
+  function evidence(
+    role: StyleEvidence["role"],
+    value: string,
+    observation?: StyleObservation,
+  ): StyleEvidence {
+    return {
+      role,
+      value: value.slice(0, 200),
+      selector: observation?.selector.slice(0, 200) ?? "",
+      property: observation?.property.slice(0, 80) ?? "",
+      source: observation?.source.slice(0, 160) ?? "Formlane fallback",
+      basis: !observation
+        ? "fallback"
+        : observation.property === "theme-color"
+          ? "metadata"
+          : observation.kind === "token"
+            ? "token"
+            : "matched",
+    };
+  }
+  function colorEvidence(role: "accent" | "surface" | "ink", color: string) {
+    const proof = proofs
+      .filter((item) => item.color === color)
+      .sort(
+        (a, b) =>
+          Number(b.role === role) - Number(a.role === role) ||
+          b.score - a.score,
+      )[0];
+    return evidence(role, color, proof?.evidence);
+  }
   return styleImportSchema.parse({
     palette: readable.palette,
     source: { url, title, fontName },
@@ -257,12 +282,17 @@ export function extractStyle(
       ) && !/sans/i.test(fontName)
         ? "serif"
         : "sans",
-    radius: radii.length
-      ? [...radii].sort((a, b) => a - b)[Math.floor(radii.length / 2)]
-      : 8,
+    radius: corner?.radius ?? 8,
     colors: [...new Set([accent, ...ranked.map(([hex]) => hex)])].slice(0, 8),
-    notes,
+    notes: [...new Set([...sample.notes, ...notes])].slice(0, 11),
     stylesheetCount: sheets.length,
+    evidence: [
+      colorEvidence("accent", accent),
+      colorEvidence("surface", surface),
+      colorEvidence("ink", ink),
+      evidence("font", fontName || "Local sans-serif", fontEvidence),
+      evidence("radius", `${corner?.radius ?? 8}px`, corner?.evidence),
+    ],
   });
 }
 
@@ -276,7 +306,7 @@ export async function importWebsite(
   const sheets = await Promise.all(
     stylesheetUrls(page.text, page.url).map(async (url) => {
       try {
-        return (await fetchText(url, "css", signal)).text;
+        return { url, css: (await fetchText(url, "css", signal)).text };
       } catch {
         notes.push(
           "A linked stylesheet could not be read; the result may be incomplete.",
@@ -289,7 +319,7 @@ export async function importWebsite(
   const result = extractStyle(
     page.text,
     page.url,
-    sheets.filter((sheet): sheet is string => sheet !== null),
+    sheets.filter((sheet): sheet is LinkedStylesheet => sheet !== null),
   );
   result.notes = [...result.notes, ...new Set(notes)];
   return result;

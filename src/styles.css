@@ -293,12 +293,69 @@ ul.import-error {
   display: flex;
   gap: 5px;
 }
-.detected-colors > div > span {
+.detected-colors > div > button {
   display: block;
   width: 20px;
   height: 20px;
   border: 1px solid #8e998633;
   border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+}
+.source-color-hint {
+  font-size: 10px;
+  color: #5f6c54;
+  margin: -10px 0 18px;
+}
+.style-evidence {
+  margin-top: 20px;
+  padding: 14px 16px;
+  background: #f0f4e8;
+  border: 1px solid #dce4d1;
+  border-radius: 7px;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.style-evidence summary {
+  cursor: pointer;
+  font-weight: 550;
+}
+.style-evidence p {
+  color: #5f6c54;
+  margin-top: 12px;
+}
+.style-evidence dl {
+  margin: 15px 0 0;
+}
+.style-evidence dl > div {
+  padding: 12px 0;
+  border-top: 1px solid #dce4d1;
+}
+.style-evidence dt {
+  font-weight: 600;
+}
+.style-evidence dt span {
+  font-weight: 400;
+  color: #5f6c54;
+  margin-left: 8px;
+}
+.style-evidence dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+.style-evidence dd > * {
+  display: block;
+}
+.style-evidence dd strong {
+  font-weight: 500;
+}
+.style-evidence dd code {
+  font-size: 10px;
+  margin-top: 5px;
+}
+.style-evidence dd small {
+  font-size: 10px;
+  color: #5f6c54;
 }
 .detected-colors small {
   margin-left: auto;
