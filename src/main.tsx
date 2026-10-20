@@ -4,6 +4,7 @@ import App from "./App";
 import "./styles.css";
 import "./templates.css";
 import "./meetings.css";
+import "./assistant.css";
 
 class ErrorBoundary extends React.Component<
   React.PropsWithChildren,

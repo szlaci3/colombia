@@ -2,6 +2,7 @@ import { Readable } from "node:stream";
 import type { Plugin, PreviewServer, ViteDevServer } from "vite";
 import handler from "../netlify/functions/import-style.mts";
 import contentHandler from "../netlify/functions/import-content.mts";
+import assistantHandler from "../netlify/functions/assistant.mts";
 
 export function websiteApi(): Plugin {
   function configure(server: ViteDevServer | PreviewServer) {
@@ -12,7 +13,9 @@ export function websiteApi(): Plugin {
           ? handler
           : path === "/api/import-content"
             ? contentHandler
-            : null;
+            : path === "/api/assistant"
+              ? assistantHandler
+              : null;
       if (!route) return next();
       try {
         const init: RequestInit & { duplex?: "half" } = {

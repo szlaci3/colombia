@@ -60,6 +60,8 @@ import { Editable } from "./components/Editable";
 import { WebsiteImport } from "./components/WebsiteImport";
 import { Projects } from "./components/Projects";
 import { PdfPreview } from "./components/PdfPreview";
+import { Assistant } from "./components/Assistant";
+import { applyReviewedProposal } from "./assistant";
 import {
   loadWorkspace,
   readLibrary,
@@ -209,7 +211,14 @@ export default function App() {
   const [inspector, setInspector] = useState<"brand" | "layers">("brand");
   const [selected, setSelected] = useState<string | null>(null);
   const [modal, setModal] = useState<
-    "share" | "library" | "help" | "reset" | "style" | "projects" | null
+    | "share"
+    | "library"
+    | "help"
+    | "reset"
+    | "style"
+    | "projects"
+    | "assistant"
+    | null
   >(null);
   const [toast, setToast] = useState("");
   const [notice, setNotice] = useState(initial.notice ?? "");
@@ -647,7 +656,7 @@ export default function App() {
             </div>
           </div>
           <div className="sidebar-bottom">
-            <span className="local-dot" /> Your ideas stay on this device
+            <span className="local-dot" /> Projects stored locally
             <button className="help-link" onClick={() => setModal("help")}>
               <CircleHelp size={16} /> A little guidance <span>↗</span>
             </button>
@@ -786,6 +795,13 @@ export default function App() {
                 </p>
               </div>
               <div className="workspace-heading-actions">
+                <button
+                  className="button subtle"
+                  onClick={() => setModal("assistant")}
+                >
+                  <Sparkles size={14} />
+                  Explore with AI
+                </button>
                 <button
                   className="button subtle"
                   onClick={() => setModal("style")}
@@ -1229,6 +1245,22 @@ export default function App() {
         aria-label="Import Formlane project"
         onChange={(event) => void importProject(event.target.files?.[0])}
       />
+      {modal === "assistant" && (
+        <Assistant
+          project={project}
+          page={page}
+          selectedId={selected}
+          title={pages[page].title}
+          close={() => setModal(null)}
+          apply={(review) => {
+            const next = applyReviewedProposal(project, review);
+            dispatch({ type: "change", project: next });
+            setSelected(null);
+            setModal(null);
+            setToast("Proposal applied. Undo brings back your previous draft.");
+          }}
+        />
+      )}
       {modal === "style" && (
         <WebsiteImport
           close={() => setModal(null)}

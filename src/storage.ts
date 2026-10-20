@@ -1,5 +1,5 @@
 import LZString from "lz-string";
-import { createProject, projectSchema, type Project } from "./model";
+import { createProject, projectSchema, type Project } from "./model.ts";
 
 export const STORAGE_KEY = "formlane.project.v1";
 export const MAX_PROJECT_SIZE = 750_000;

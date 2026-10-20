@@ -1,5 +1,98 @@
 import { test, expect } from "@playwright/test";
 
+test("reports assistant availability and rejects invalid requests without provider work", async ({
+  request,
+  baseURL,
+}) => {
+  const status = await request.get("/api/assistant");
+  expect(status.status()).toBe(200);
+  expect(status.headers()["cache-control"]).toBe("no-store");
+  const data = await status.json();
+  expect(typeof data.enabled).toBe("boolean");
+  expect(data.provider).toBe("Google Gemini");
+  expect(Object.keys(data).sort()).toEqual(["enabled", "provider"]);
+  const invalid = await request.post("/api/assistant", {
+    headers: { Origin: new URL(baseURL!).origin },
+    data: {},
+  });
+  expect(invalid.status()).toBe(400);
+  const crossSite = await request.post("/api/assistant", {
+    headers: { Origin: "https://unrelated.example" },
+    data: {},
+  });
+  expect(crossSite.status()).toBe(403);
+});
+
+test("opens the deployed assistant and applies a clearly labeled local example", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Explore with AI", exact: true })
+    .click();
+  await expect(page.getByRole("dialog").getByRole("status")).not.toContainText(
+    "Checking AI availability",
+  );
+  await page
+    .getByRole("button", {
+      name: "Try an example · no AI request",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Example proposal" }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Apply 2 changes", exact: true })
+    .click();
+  await expect(page.locator(".prototype-canvas")).toContainText(
+    "A direction to explore",
+  );
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".prototype-canvas")).not.toContainText(
+    "A direction to explore",
+  );
+});
+
+if (process.env.FORMLANE_ASSISTANT_LIVE === "true") {
+  test("gets a real provider proposal through the hosted assistant and applies it with undo", async ({
+    page,
+  }) => {
+    test.setTimeout(45_000);
+    await page.goto("/");
+    await page
+      .getByRole("button", { name: "Explore with AI", exact: true })
+      .click();
+    await expect(
+      page.getByText("AI suggestions are available.", { exact: true }),
+    ).toBeVisible();
+    await page
+      .getByLabel("What would you like to explore?")
+      .fill(
+        'Set only the shared brand name to "Workshop Example". Do not change any section or theme.',
+      );
+    await page
+      .getByRole("button", { name: "Generate proposal", exact: true })
+      .click();
+    const apply = page.getByRole("button", {
+      name: "Apply 1 change",
+      exact: true,
+    });
+    await expect(apply).toBeVisible({ timeout: 32_000 });
+    await expect(page.locator(".assistant-review")).toContainText(
+      "Workshop Example",
+    );
+    await apply.click();
+    await expect(page.getByLabel("Brand name", { exact: true })).toHaveValue(
+      "Workshop Example",
+    );
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(
+      page.getByLabel("Brand name", { exact: true }),
+    ).not.toHaveValue("Workshop Example");
+  });
+}
+
 test("serves a compiled JavaScript module and starts the editor", async ({
   request,
   page,

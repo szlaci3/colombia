@@ -19,7 +19,7 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. No account, API key, database, or environment file is required. Fonts and illustrations are bundled locally. The editor works locally; website style and content imports use same-origin endpoints to read the public website you submit. Both `npm run dev` and `npm run preview` provide those endpoints locally.
+Open the local URL printed by Vite. The editor and labeled assistant example require no account, API key, database, or environment file. Fonts and illustrations are bundled locally. Website imports use same-origin endpoints to read the public URL you submit; optional AI suggestions use a server-side provider connection. Both `npm run dev` and `npm run preview` provide these endpoints locally.
 
 ## Current capabilities
 
@@ -41,6 +41,8 @@ Open the local URL printed by Vite. No account, API key, database, or environmen
 - **Portable projects:** export/import a validated, versioned `.formlane.json` file. Imports and confirmed start-fresh operations can be undone.
 - **Earlier v1 projects:** old saves, files, and snapshot links gain the new starter pages while retaining original content, IDs, and brand settings. Normalized projects save all six pages. Malformed supplied pages are rejected rather than replaced; the 750 KB limit also applies after expansion. A legacy save that would exceed it opens the protected recovery flow, leaving the saved copy untouched.
 - **Shareable snapshots:** compressed project data travels in the URL fragment. A snapshot opens without replacing the recipient’s saved project; “Keep this copy” adds a separate project to their library. Links contain the current draft, without its version history, and are snapshots rather than live collaboration.
+- **Reviewed AI suggestions:** “Explore with AI” accepts a request for copy, section order, text additions/removal, table headers/cells/rows, or a shared brand/theme. Choose the current template or just the selected section. Review exact before/proposed values, then apply the whole proposal in one undoable change. Nothing applies automatically. Unsupported or invalid proposals leave the draft intact; editing the request, cancelling, closing, or changing the project discards stale proposals. Advice-only responses can ask a clarifying question without edits.
+- **Honest unconfigured mode:** AI suggestions remain disabled until a server-side provider is enabled. “Try an example · no AI request” demonstrates the same review/apply/undo workflow using a clearly labeled built-in proposal. It makes no provider request and works offline after the app has loaded.
 - **A guided introduction:** a three-step tour explains the actual tools and their limits.
 
 Templates are visual examples. Store checkout, email delivery, real customer records, and production task management are outside this prototype.
@@ -64,6 +66,8 @@ Template tests use a checked-in three-page v1 fixture to verify local/file/snaps
 
 Meeting-workflow tests cover legacy migration, independent projects, pending-edit flushing, duplication, rename/reload, separate undo histories, durable checkpoints, restoration/undo, confirmed removal, corruption recovery, quota/size limits, and observed stale-tab conflicts. Browser tests exercise phone accessibility and generate actual PDFs for current/all templates and a 100-row, 20-column table. The PDF outputs are also inspected with text extraction and rendered-page review during development. Deployment smoke checks create a project/version and generate a PDF through the hosted UI.
 
+Assistant tests cover allowed operations, atomic rejection, context minimization, IDs/fields/table shape/capacity, final project size, stale reviews, and one-step undo/redo. Server tests use controlled provider responses for the Gemini Generate Content API contract, strict output schema, refusals, incomplete/malformed responses, origin checks, request/response bounds, unconfigured mode, and sanitized failures. Browser tests use controlled API responses for review/apply, persistence, table edits, cancellation, stale requests/projects, inert text, phone accessibility, and focus restoration. These tests do **not** establish live provider access or model quality. Ordinary deployment checks exercise availability, invalid/cross-origin requests, and the local example without spending provider tokens.
+
 Individual commands: `npm test`, `npm run build`, and `npm run test:e2e`. Failed browser tests retain traces under `test-results/`. CI runs the same checks on pushes and pull requests.
 
 To inspect the production bundle, run `npm run build` followed by `npm run preview`. Any static host can serve the editor in `dist/`; website imports additionally require the included server endpoints. Templates use query parameters, so no route rewrite is required. A shared link must use a URL reachable by its recipient; a localhost link works only on that same machine.
@@ -76,7 +80,7 @@ For Git-based deployments, connect `szlaci3/colombia` with production branch `ma
 
 For a manual file/ZIP deployment, run `npm ci` and `npm run build` locally, then upload **only the generated `dist` folder** to the existing Netlify site. A manual upload does not execute the build command in `netlify.toml`. The uploaded site must have the built `index.html` at its root, with its `assets` directory alongside it.
 
-A `dist`-only upload supports the editor, but does not deploy the import functions. Use the connected Git deployment for the complete app.
+A `dist`-only upload supports the editor and local assistant example, but does not deploy the import or assistant functions. Use the connected Git deployment for the complete app.
 
 If the page is blank and the console reports a module with MIME type `application/octet-stream`, inspect the deployed HTML. A script pointing to `/src/main.tsx` means the unbuilt repository was published. Redeploy the built `dist` output; changing the MIME type for `.tsx` does not compile TypeScript or JSX. The built HTML should reference a generated `/assets/*.js` module, served with a JavaScript content type.
 
@@ -90,6 +94,20 @@ Remove-Item Env:FORMLANE_BASE_URL
 
 The smoke checks verify the compiled module and its MIME type, load the actual editor without browser errors, open all six template URLs, import pasted Markdown through the deployed UI, and check that both deployed functions reject unsafe targets. They use separate browser contexts and do not change existing users’ saved projects. Without `FORMLANE_BASE_URL`, they build and check the local production bundle. To additionally exercise real style extraction, source evidence, and application through the hosted UI, set `FORMLANE_IMPORT_URL` to a public HTTPS page, such as `https://formlane.netlify.app/examples/brand-study.html`. Set `FORMLANE_CONTENT_URL` to `https://formlane.netlify.app/examples/studio-notes.html` to verify real content fetching, Markdown download, and table import. Remove these variables afterward. Live fetching is optional so normal CI never relies on external websites.
 
+## Enable live AI suggestions
+
+The server adapter uses Google Gemini's [Gemini Generate Content API with structured outputs](https://ai.google.dev/gemini-api/docs/generate-content/structured-output). Its configurable default is [Gemini 3.8 Flash](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash). The key stays in the function; the browser receives only availability and validated proposals.
+
+1. In Netlify's environment settings for this site, add `GEMINI_API_KEY` as a **secret available to Functions**, and set `FORMLANE_ASSISTANT_ENABLED=true`. Optionally set `FORMLANE_ASSISTANT_MODEL` to a compatible Gemini 3-or-later model with structured outputs and `LOW` thinking; otherwise the default applies.
+2. Redeploy the connected `main` branch. Keep these values out of source control, `netlify.toml`, and every `VITE_` variable. The checked-in `.env.example` contains names and empty/default values only.
+3. Open “Explore with AI”, request a small change, inspect the proposal, apply it, and undo it. To automate that live check, set `FORMLANE_BASE_URL=https://formlane.netlify.app` and `FORMLANE_ASSISTANT_LIVE=true`, then run `npm run test:deployment`. This opt-in check sends example project content and incurs provider usage. Remove the test environment variables afterward.
+
+For local development, copy `.env.example` to `.env.local`, fill the server-only key, set the activation flag, and restart Vite. The local API adapter reads these server variables without exposing them through `import.meta.env`. Never paste a permanent provider key into the app. Set `FORMLANE_ASSISTANT_ENABLED=false` and redeploy to disable provider calls while keeping manual editing and the example available.
+
+The endpoint is public when enabled, with a Netlify limit of six requests per minute per IP/domain (including availability checks). This is not authentication or a global spending cap. Configure provider project usage controls before enabling a public demo. Requests are capped at 65 KB, prompts at 2,000 characters, responses at 150 KB, proposals at 12 operations, and generation at 2,400 output tokens with a 25-second server timeout. The local Vite adapter does not emulate platform rate limits. Cancellation prevents a late response from applying; it cannot guarantee that an already-running provider request incurs no usage.
+
+**Activation status:** the implementation, controlled tests, and unconfigured deployment workflow are complete. Live provider activation and the opt-in real AI check require a configured server-side key; they have not been verified yet.
+
 ## Data and privacy
 
 The app stores its library under `formlane.library.v1` in browser local storage and retains `formlane.project.v1` as a compatibility cache of the selected draft. The library allows 10 projects, 10 named versions per project, and 3 MB of serialized UTF-8 data in total; browser quotas can apply earlier. No project or version is silently evicted. Versions are complete snapshots and count toward that limit. Project-file exports contain one draft, not the whole library or its version history; export important versions individually. Explicit recovery of an unreadable library first preserves the exact original under a `formlane.library.recovery.*` key. Clearing browser data removes projects, versions, and recovery backups.
@@ -99,6 +117,8 @@ There is no server-side project storage or app telemetry. Website imports send t
 Imports are schema-validated, with bounded sizes, fixed theme choices, unique IDs, and rectangular table checks. Imported strings render as text, never HTML. A project supports 24 sections per page, 24 products per collection, 20 table columns/100 rows, and 8 Kanban columns/100 cards per column. Files are limited to 750 KB and encoded snapshot payloads to 48,000 characters; export a file when a project outgrows sharing by link. Extremely long links may be truncated by other applications.
 
 Pasted Markdown and its optional title stay in the open content dialog and are discarded when it closes; they are not autosaved or sent to an API. Only sections you add become saved project data. Markdown tools load as an app asset when first used. Copy/download retains the complete original text, including any raw HTML, while section selection changes only what is added to the prototype.
+
+AI requests send the prompt, project name, shared brand settings, and only the chosen template/section to the same-origin function and then Google Gemini. They exclude other templates, saved versions, and imported style-source metadata. Request/proposal text lives only in the open dialog; the app does not save chat logs. Applied edits become ordinary saved project content. The provider request sets `store:false`; provider data handling still follows its own policies. Use example data for public demos. The built-in example never posts project content.
 
 ## Scope decisions
 
@@ -112,6 +132,6 @@ The local Markdown adapter accepts up to 100,000 characters. Marked tokenizes st
 
 Both importers use the same fetcher: public HTTPS hostnames on the standard port, no private/reserved DNS addresses, the vetted address pinned to the TLS request, and revalidation on every redirect. Imports have a 12-second deadline, three-redirect limit, 600 KB HTML/250 KB-per-stylesheet limits, and a Netlify rate limit of 10 requests per minute per IP/domain for each endpoint. Content import fetches only the page, not its stylesheets. Source scripts are never executed, and arbitrary CSS is never injected into the editor.
 
-An AI chatbot, a recorded explainer video, accounts, real-time collaboration, free-positioned layouts, and production website/code generation remain deferred. These website imports run on demand; they are not a Chrome extension or a full browser capture.
+A recorded explainer video, accounts, real-time collaboration, free-positioned layouts, and production website/code generation remain deferred. The assistant is a bounded, request-and-review editor helper rather than an autonomous agent: it has no browsing, tool execution, cross-project access, or persistent chat memory. These website imports run on demand; they are not a Chrome extension or a full browser capture.
 
 See [the architecture notes](docs/architecture.md) for extension points and tradeoffs, and [the release roadmap](docs/roadmap.md) for the remaining milestones.
