@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { customThemeSchema } from "./theme";
+import { customThemeSchema } from "./theme.ts";
 
 const text = z.string().max(2000);
 const id = z
@@ -67,6 +67,19 @@ const columnSchema = z.object({
   title: text,
   cards: z.array(cardSchema).max(100),
 });
+export const textBlockSchema = z.object({
+  id,
+  type: z.literal("text"),
+  title: text,
+  body: text,
+});
+export const tableBlockSchema = z.object({
+  id,
+  type: z.literal("table"),
+  title: text,
+  headers: z.array(text).min(1).max(20),
+  rows: z.array(z.array(text).max(20)).max(100),
+});
 export const blockSchema = z.discriminatedUnion("type", [
   z.object({
     id,
@@ -81,13 +94,7 @@ export const blockSchema = z.discriminatedUnion("type", [
     title: text,
     items: z.array(productSchema).min(1).max(24),
   }),
-  z.object({
-    id,
-    type: z.literal("table"),
-    title: text,
-    headers: z.array(text).min(1).max(20),
-    rows: z.array(z.array(text).max(20)).max(100),
-  }),
+  tableBlockSchema,
   z.object({
     id,
     type: z.literal("board"),
@@ -95,7 +102,7 @@ export const blockSchema = z.discriminatedUnion("type", [
     columns: z.array(columnSchema).min(1).max(8),
   }),
   z.object({ id, type: z.literal("quote"), quote: text, author: text }),
-  z.object({ id, type: z.literal("text"), title: text, body: text }),
+  textBlockSchema,
 ]);
 export type Block = z.infer<typeof blockSchema>;
 export type BlockType = Block["type"];

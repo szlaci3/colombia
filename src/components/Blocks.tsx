@@ -74,7 +74,7 @@ function Table({
     <section className="table-section">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">A little more connected</span>
+          <span className="eyebrow">Clarity in the details</span>
           <Editable
             as="h2"
             label="Table title"
@@ -83,7 +83,7 @@ function Table({
             preview={preview}
           />
         </div>
-        <span className="count-badge">{block.rows.length} people</span>
+        <span className="count-badge">{block.rows.length} rows</span>
       </div>
       <div
         className="table-scroll"

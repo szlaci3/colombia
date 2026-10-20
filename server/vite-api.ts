@@ -1,11 +1,19 @@
 import { Readable } from "node:stream";
 import type { Plugin, PreviewServer, ViteDevServer } from "vite";
 import handler from "../netlify/functions/import-style.mts";
+import contentHandler from "../netlify/functions/import-content.mts";
 
-export function styleApi(): Plugin {
+export function websiteApi(): Plugin {
   function configure(server: ViteDevServer | PreviewServer) {
     server.middlewares.use(async (req, res, next) => {
-      if (req.url?.split("?")[0] !== "/api/import-style") return next();
+      const path = req.url?.split("?")[0];
+      const route =
+        path === "/api/import-style"
+          ? handler
+          : path === "/api/import-content"
+            ? contentHandler
+            : null;
+      if (!route) return next();
       try {
         const init: RequestInit & { duplex?: "half" } = {
           method: req.method,
@@ -15,8 +23,8 @@ export function styleApi(): Plugin {
           init.body = Readable.toWeb(req) as ReadableStream<Uint8Array>;
           init.duplex = "half";
         }
-        const response = await handler(
-          new Request(`http://${req.headers.host}/api/import-style`, init),
+        const response = await route(
+          new Request(`http://${req.headers.host}${path}`, init),
         );
         res.writeHead(response.status, Object.fromEntries(response.headers));
         res.end(Buffer.from(await response.arrayBuffer()));
@@ -24,14 +32,15 @@ export function styleApi(): Plugin {
         res.writeHead(500, { "Content-Type": "application/json" });
         res.end(
           JSON.stringify({
-            error: "The local style importer could not complete this request.",
+            error:
+              "The local website importer could not complete this request.",
           }),
         );
       }
     });
   }
   return {
-    name: "formlane-style-api",
+    name: "formlane-website-api",
     configureServer: configure,
     configurePreviewServer: configure,
   };

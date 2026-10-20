@@ -57,17 +57,19 @@ for (const template of ["webshop", "kanban", "table"]) {
   });
 }
 
-test("the deployed style endpoint rejects unsafe targets", async ({
-  request,
-}) => {
-  const method = await request.get("/api/import-style");
-  expect(method.status()).toBe(405);
-  const response = await request.post("/api/import-style", {
-    data: { url: "https://127.0.0.1/latest/meta-data" },
+for (const endpoint of ["import-style", "import-content"]) {
+  test(`the deployed ${endpoint} endpoint rejects unsafe targets`, async ({
+    request,
+  }) => {
+    const method = await request.get(`/api/${endpoint}`);
+    expect(method.status()).toBe(405);
+    const response = await request.post(`/api/${endpoint}`, {
+      data: { url: "https://127.0.0.1/latest/meta-data" },
+    });
+    expect(response.status()).toBe(400);
+    expect((await response.json()).error).toMatch(/public website/);
   });
-  expect(response.status()).toBe(400);
-  expect((await response.json()).error).toMatch(/public website/);
-});
+}
 
 if (process.env.FORMLANE_IMPORT_URL) {
   test("imports a real website through the hosted function and applies the reviewed style", async ({
@@ -102,5 +104,41 @@ if (process.env.FORMLANE_IMPORT_URL) {
       "data-theme",
       "custom",
     );
+  });
+}
+
+if (process.env.FORMLANE_CONTENT_URL) {
+  test("reads a real page through the hosted function, downloads Markdown, and imports an editable table", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page
+      .getByRole("button", { name: "Start from a website", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Page content", exact: true })
+      .click();
+    await page
+      .getByLabel("Content website URL", { exact: true })
+      .fill(process.env.FORMLANE_CONTENT_URL!);
+    await page.getByRole("button", { name: "Read page", exact: true }).click();
+    const apply = page.getByRole("button", {
+      name: /Add \d+ sections? to Webshop/,
+    });
+    await expect(apply).toBeEnabled({ timeout: 20_000 });
+    const downloaded = page.waitForEvent("download");
+    await page
+      .getByRole("button", { name: "Download Markdown", exact: true })
+      .click();
+    const download = await downloaded;
+    const { readFileSync } = await import("node:fs");
+    const markdown = readFileSync((await download.path())!, "utf8");
+    expect(markdown).toContain("Source:");
+    expect(markdown).toContain("| Idea | Next step | Owner |");
+    await apply.click();
+    await expect(page.getByRole("table")).toBeVisible();
+    await expect(
+      page.getByRole("textbox", { name: "Row 1, Owner", exact: true }),
+    ).toHaveText("Alex");
   });
 }

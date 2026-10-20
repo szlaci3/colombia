@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#536b48" />
+    <title>Studio notes — Formlane example</title>
+    <style>
+      :root {
+        --brand-primary: #536b48;
+        --page-background: #f8f9f3;
+      }
+      body {
+        margin: 0;
+        background: var(--page-background);
+        color: #30382d;
+        font:
+          16px/1.8 Arial,
+          sans-serif;
+      }
+      header,
+      main,
+      footer {
+        max-width: 760px;
+        margin: auto;
+        padding: 25px;
+      }
+      header {
+        border-bottom: 1px solid #dce3d2;
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+      }
+      h1,
+      h2 {
+        font-family: Georgia, serif;
+        font-weight: 400;
+        letter-spacing: -1px;
+        line-height: 1.2;
+      }
+      h1 {
+        font-size: 48px;
+      }
+      h2 {
+        font-size: 30px;
+        margin-top: 40px;
+      }
+      a {
+        color: var(--brand-primary);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+      }
+      caption {
+        text-align: left;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+        border: 1px solid #dce3d2;
+      }
+      th {
+        background: #eaf0df;
+      }
+      blockquote {
+        border-left: 3px solid #536b48;
+        margin: 20px 0;
+        padding: 10px 22px;
+        background: #edf2e4;
+      }
+      pre {
+        background: #eaf0df;
+        padding: 18px;
+        border-radius: 12px;
+        overflow: auto;
+      }
+      footer {
+        font-size: 12px;
+        color: #536b48;
+        border-top: 1px solid #dce3d2;
+      }
+      @media (max-width: 600px) {
+        h1 {
+          font-size: 36px;
+        }
+        th,
+        td {
+          font-size: 13px;
+          padding: 8px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span>Formlane / Example page</span>
+      <nav><a href="/">Open the playground</a></nav>
+    </header>
+    <main>
+      <h1>A better Monday meeting</h1>
+      <p>
+        Good ideas deserve a little room. These studio notes are an original
+        example you can import into your own prototype or save as Markdown.
+      </p>
+      <h2>Three questions to bring</h2>
+      <ol>
+        <li>What are we trying to make easier?</li>
+        <li>Which small change could we explore today?</li>
+        <li>Who should see the next version?</li>
+      </ol>
+      <p>
+        Keep the conversation practical. You can
+        <a href="/">open Formlane</a> to turn a suggestion into something
+        everyone can see.
+      </p>
+      <h2 id="next-steps">The next small steps</h2>
+      <p>A short plan is easier to move forward together.</p>
+      <table>
+        <caption>
+          Meeting plan
+        </caption>
+        <thead>
+          <tr>
+            <th>Idea</th>
+            <th>Next step</th>
+            <th>Owner</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>A clearer welcome</td>
+            <td>Explore a new headline</td>
+            <td>Alex</td>
+          </tr>
+          <tr>
+            <td>Less clutter</td>
+            <td>Rearrange the sections</td>
+            <td>Sam</td>
+          </tr>
+          <tr>
+            <td>One shared direction</td>
+            <td>Present the prototype</td>
+            <td>Jordan</td>
+          </tr>
+        </tbody>
+      </table>
+      <h2>A note worth keeping</h2>
+      <blockquote>
+        Make the idea visible before you make it complicated.
+      </blockquote>
+      <pre><code>share → discuss → decide</code></pre>
+    </main>
+    <footer>
+      This is a sample page for testing Formlane's content and style import. Its
+      content is editable in your own copy.
+    </footer>
+  </body>
+</html>

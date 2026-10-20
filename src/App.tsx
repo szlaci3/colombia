@@ -52,7 +52,8 @@ import {
 import { blockNames, SortableBlock } from "./components/Blocks";
 import { Dialog } from "./components/Dialog";
 import { Editable } from "./components/Editable";
-import { StyleImport } from "./components/StyleImport";
+import { WebsiteImport } from "./components/WebsiteImport";
+import { appendImportedSections } from "./content";
 import {
   createBlock,
   createProject,
@@ -1082,8 +1083,37 @@ export default function App() {
         onChange={(event) => void importProject(event.target.files?.[0])}
       />
       {modal === "style" && (
-        <StyleImport
+        <WebsiteImport
           close={() => setModal(null)}
+          content={{
+            slots: 24 - blocks.length,
+            destination: pages[page].title,
+            apply: (sections) => {
+              if (!sections.length || blocks.length + sections.length > 24) {
+                setToast(
+                  "Choose sections that fit the page’s 24-section limit.",
+                );
+                return;
+              }
+              const next = appendImportedSections(
+                project,
+                page,
+                sections,
+                selected,
+              );
+              if (
+                !change((draft) => {
+                  draft.pages[page] = next.pages[page];
+                })
+              )
+                return;
+              setModal(null);
+              setSelected(null);
+              setToast(
+                `${sections.length} section${sections.length === 1 ? "" : "s"} added to ${pages[page].title}. You can undo this import.`,
+              );
+            },
+          }}
           apply={(result, brand) => {
             if (
               !change((draft) => {
