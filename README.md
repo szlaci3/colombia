@@ -6,6 +6,8 @@ Formlane is a browser-based visual prototyping playground for the “what if?”
 
 Colombia is the repository name; the application is called Formlane.
 
+**Deployed URL:** [formlane.netlify.app](https://formlane.netlify.app)
+
 ![Formlane studio with the webshop prototype and shared brand settings](docs/formlane.png)
 
 ## Run locally
@@ -45,7 +47,27 @@ npm run check
 
 Individual commands: `npm test`, `npm run build`, and `npm run test:e2e`. Failed browser tests retain traces under `test-results/`. CI runs the same checks on pushes and pull requests.
 
-To inspect the production bundle, run `npm run build` followed by `npm run preview`. Any static host can serve `dist/`; templates use query parameters, so no route rewrite is required. A shared link must use a URL reachable by its recipient; a localhost link works only on that same machine. No hosting deployment is configured or required.
+To inspect the production bundle, run `npm run build` followed by `npm run preview`. Any static host can serve `dist/`; templates use query parameters, so no route rewrite is required. A shared link must use a URL reachable by its recipient; a localhost link works only on that same machine.
+
+## Deploy on Netlify
+
+The deployed URL is [https://formlane.netlify.app](https://formlane.netlify.app). The repository’s `netlify.toml` configures Node.js 24, the build command `npm run build`, and the publish directory `dist`.
+
+For Git-based deployments, connect `szlaci3/colombia` with production branch `main` and the repository root as the base directory. Netlify reads the checked-in configuration on the next deployment. After adding this configuration to an existing site, trigger a new deployment if one does not start automatically.
+
+For a manual file/ZIP deployment, run `npm ci` and `npm run build` locally, then upload **only the generated `dist` folder** to the existing Netlify site. A manual upload does not execute the build command in `netlify.toml`. The uploaded site must have the built `index.html` at its root, with its `assets` directory alongside it.
+
+If the page is blank and the console reports a module with MIME type `application/octet-stream`, inspect the deployed HTML. A script pointing to `/src/main.tsx` means the unbuilt repository was published. Redeploy the built `dist` output; changing the MIME type for `.tsx` does not compile TypeScript or JSX. The built HTML should reference a generated `/assets/*.js` module, served with a JavaScript content type.
+
+To check a deployment from PowerShell:
+
+```powershell
+$env:FORMLANE_BASE_URL = 'https://formlane.netlify.app'
+npm run test:deployment
+Remove-Item Env:FORMLANE_BASE_URL
+```
+
+The smoke checks verify the compiled module and its MIME type, load the actual editor without browser errors, and open all three template URLs. They use a separate browser context and do not change existing users’ saved projects. Without `FORMLANE_BASE_URL`, they build and check the local production bundle.
 
 ## Data and privacy
 

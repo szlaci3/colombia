@@ -31,4 +31,4 @@ Sharing uses `lz-string` in the URL fragment, with the current template in the q
 3. An AI assistant should call validated project operations with undo support. Keep provider credentials server-side and make generated changes reviewable.
 4. Add template families using these blocks before introducing new editor primitives. Combine templates into a custom application only after designing and testing that interaction.
 
-No server, external service, or deployment is needed for this version. The production output is `dist/`.
+No application server or external API is needed for this version. The production output is `dist/`, hosted at [formlane.netlify.app](https://formlane.netlify.app). `netlify.toml` declares the build command, output directory, and Node version for Git-based Netlify deployments. Manual uploads must contain the built output; publishing the source root leaves the browser trying to execute uncompiled TSX.

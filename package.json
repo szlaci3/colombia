@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:deployment": "playwright test tests/deployment.spec.ts",
     "check": "npm run test && npm run test:e2e",
     "format": "prettier --write src tests *.ts *.json index.html README.md docs .github"
   },
