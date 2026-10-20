@@ -2,13 +2,23 @@
 
 ## State and rendering
 
-React and TypeScript render a single versioned JSON project. `src/model.ts` defines six discriminated block types and three independently editable page arrays. All pages reference the same project-level brand/theme. `src/components/Blocks.tsx` renders the same data in editing and presentation modes, so preview does not have a second implementation to drift out of sync.
+React and TypeScript render a single versioned JSON project. `src/model.ts` defines six discriminated block types and six independently editable page arrays: webshop, Kanban, data table, blog, social feed, and dashboard. All pages reference the same project-level brand/theme. `src/components/Blocks.tsx` renders the same data in editing and presentation modes, so preview does not have a second implementation to drift out of sync.
 
 Themes use an allowlisted preset or optional validated custom palette, font category, and numeric radius, passed to the canvas as CSS custom properties. Custom palettes contain only six-digit hex colors and bounded source metadata; arbitrary CSS is never accepted. Existing v1 projects remain compatible. The application chrome stays consistent while every prototype changes together. Original SVG illustrations are React components, so they work offline and scale without asset hosting.
 
 `historyReducer` records immutable project snapshots and caps history at 50 steps. A change after undo discards the redo branch. Navigation, selection, dialogs, and viewport width are editor state, not project content. Text commits on blur rather than recording a snapshot per keystroke. Escape restores the previous value. Native text undo remains available while a field has focus.
 
 The editor uses ordered blocks rather than arbitrary pixel positioning. Responsive sections provide useful meeting-time rearranging without creating a full design tool. Each page uses a query parameter, which works on static hosts without server rewrites.
+
+## Template composition and v1 compatibility
+
+The new templates compose existing hero, text, and table blocks. An optional allowlisted text `appearance` selects plain text, article, post, or metric presentation. Article/post variants use semantic articles; post initials derive from the editable title; metric bodies use a first line for the figure and subsequent lines for its caption. These remain ordinary bounded strings, not analytics or a new data primitive. “Section style” changes the variant in one history transaction and is hidden during presentation. Duplication, content import, file/snapshot export, and undo use the same block model.
+
+`createTemplate` supplies fresh IDs for the blog, social, and dashboard starters. The v1 schema retains its three required original pages; missing new pages receive validated starter data through schema defaults. Explicitly supplied malformed/empty new pages still fail validation. Existing content, IDs, shared theme, and provenance are preserved. Once normalized, all six arrays are serialized, so subsequent loads retain their IDs and edits. Old local saves, JSON files, and compressed snapshot links use the same path. The original storage key and version stay unchanged; no separate project store is introduced.
+
+The 750 KB limit is checked both before parsing and after adding starter pages. A legacy save too close to the limit is protected by the existing recovery flow rather than autosaving an unreadable expanded project. Users can reduce an exported legacy file and reimport it. The checked-in three-page fixture exercises all three entry points. Global ID, table-shape, content, and appearance validation covers every template.
+
+`src/templates.css` provides variant and template styling through the shared palette/font/radius variables. Dashboard metrics use a responsive grid and `rectSortingStrategy`; other sections use the existing vertical strategy. Native source order remains the reading and persisted order. Controls stay available at narrow widths, metric cards stack, and table overflow stays inside its named scroll region. Six-template navigation is shared by the sidebar, prototype header, URL query, and presentation selector.
 
 ## Rearranging and accessibility
 
@@ -60,6 +70,6 @@ The adapter validates 100,000-character input, 20 offered sections, 2,000-charac
 
 ## Remaining work
 
-The [release roadmap](roadmap.md) records the agreed milestones. Template expansion comes next, using existing blocks before adding editor primitives. The AI assistant must call validated project operations with review and undo, and keep provider credentials server-side. Advanced source extraction (rendered-browser styles, conditional rules, full shorthand support, exact fonts/layouts) and a browser extension remain separate future options.
+The [release roadmap](roadmap.md) records the agreed milestones. Named projects, saved versions, and PDF export come next. The AI assistant must call validated project operations with review and undo, and keep provider credentials server-side. Advanced source extraction (rendered-browser styles, conditional rules, full shorthand support, exact fonts/layouts) and a browser extension remain separate future options.
 
 The editor’s production output is `dist/`, hosted at [formlane.netlify.app](https://formlane.netlify.app). Website imports additionally use the included Netlify functions; no database, provider account, or API key is needed. `netlify.toml` declares the build command, output directory, Node version, and function source directory. A static-only host can serve the editor, but needs compatible endpoints to enable URL imports.

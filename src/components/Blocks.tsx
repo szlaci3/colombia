@@ -24,6 +24,7 @@ import {
   Check,
   Copy,
   GripVertical,
+  Leaf,
   Plus,
   Star,
   Trash2,
@@ -34,10 +35,12 @@ import {
   moveCard,
   moveItem,
   uid,
+  textAppearances,
   type Block,
   type BoardBlock,
   type Card,
   type TableBlock,
+  type PageId,
 } from "../model";
 import { Editable } from "./Editable";
 import { Art } from "./Art";
@@ -54,6 +57,7 @@ type BlockProps = {
   block: Block;
   update: (block: Block) => void;
   preview: boolean;
+  template?: PageId;
 };
 
 function Table({
@@ -170,7 +174,7 @@ function Table({
                 ...block,
                 rows: [
                   ...block.rows,
-                  block.headers.map((_, i) => (i === 0 ? "New person" : "—")),
+                  block.headers.map((_, i) => (i === 0 ? "New entry" : "—")),
                 ],
               })
             }
@@ -506,7 +510,7 @@ function Board({
   );
 }
 
-export function BlockContent({ block, update, preview }: BlockProps) {
+export function BlockContent({ block, update, preview, template }: BlockProps) {
   switch (block.type) {
     case "hero":
       return (
@@ -537,11 +541,33 @@ export function BlockContent({ block, update, preview }: BlockProps) {
               onChange={(description) => update({ ...block, description })}
               preview={preview}
             />
-            <span className="prototype-cta">
-              Thoughtfully made <ArrowUpRight size={16} />
-            </span>
+            {template === "blog" ||
+            template === "social" ||
+            template === "dashboard" ? (
+              <span className="prototype-context">
+                {template === "blog"
+                  ? "Notes, ideas & everyday rituals."
+                  : template === "social"
+                    ? "A space for small discoveries."
+                    : "A little clarity for the week ahead."}
+              </span>
+            ) : (
+              <span className="prototype-cta">
+                Thoughtfully made <ArrowUpRight size={16} />
+              </span>
+            )}
           </div>
-          <Art kind="hero" />
+          {template === "social" ? (
+            <div className="social-hero-art" aria-hidden="true">
+              <span>A</span>
+              <span>S</span>
+              <span>
+                <Leaf size={38} />
+              </span>
+            </div>
+          ) : template === "dashboard" ? null : (
+            <Art kind="hero" />
+          )}
         </section>
       );
     case "products":
@@ -702,11 +728,33 @@ export function BlockContent({ block, update, preview }: BlockProps) {
           />
         </section>
       );
-    case "text":
+    case "text": {
+      const appearance = block.appearance ?? "plain";
+      const Section =
+        appearance === "article" || appearance === "post"
+          ? "article"
+          : "section";
       return (
-        <section className="text-section">
+        <Section className={`text-section text-${appearance}`}>
+          {appearance === "post" && (
+            <span className="post-avatar" aria-hidden="true">
+              {block.title
+                .trim()
+                .split(/\s+/)
+                .slice(0, 2)
+                .map((word) => [...word][0] ?? "")
+                .join("") || "?"}
+            </span>
+          )}
           <span className="eyebrow">
-            <Check size={12} /> Made with intention
+            <Check size={12} />{" "}
+            {appearance === "article"
+              ? "From the journal"
+              : appearance === "post"
+                ? "Community note"
+                : appearance === "metric"
+                  ? "At a glance"
+                  : "Made with intention"}
           </span>
           <Editable
             as="h2"
@@ -723,8 +771,41 @@ export function BlockContent({ block, update, preview }: BlockProps) {
             preview={preview}
             onChange={(body) => update({ ...block, body })}
           />
-        </section>
+          {!preview && (
+            <label className="text-appearance-control">
+              Section style{" "}
+              <select
+                aria-label="Section style"
+                value={appearance}
+                onChange={(event) =>
+                  update({
+                    ...block,
+                    appearance: event.target
+                      .value as (typeof textAppearances)[number],
+                  })
+                }
+              >
+                {textAppearances.map((value) => (
+                  <option key={value} value={value}>
+                    {
+                      {
+                        plain: "Text",
+                        article: "Article",
+                        post: "Post",
+                        metric: "Metric",
+                      }[value]
+                    }
+                  </option>
+                ))}
+              </select>
+              {appearance === "metric" && (
+                <small>First line: figure. Next lines: caption.</small>
+              )}
+            </label>
+          )}
+        </Section>
       );
+    }
   }
 }
 
@@ -732,6 +813,7 @@ export function SortableBlock({
   block,
   update,
   preview,
+  template,
   selected,
   select,
   index,
@@ -762,6 +844,9 @@ export function SortableBlock({
       ref={setNodeRef}
       data-block-id={block.id}
       data-block-type={block.type}
+      data-text-appearance={
+        block.type === "text" ? (block.appearance ?? "plain") : undefined
+      }
       className={`canvas-block ${selected && !preview ? "selected" : ""} ${isDragging ? "dragging" : ""}`}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       onClick={() => !preview && select()}
@@ -815,7 +900,12 @@ export function SortableBlock({
           </div>
         </div>
       )}
-      <BlockContent block={block} update={update} preview={preview} />
+      <BlockContent
+        block={block}
+        update={update}
+        preview={preview}
+        template={template}
+      />
     </div>
   );
 }

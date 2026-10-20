@@ -21,6 +21,13 @@ export function parseProject(json: string): Project {
     throw new Error(
       "This is not a supported Formlane v1 project. Your current project is unchanged.",
     );
+  if (
+    new TextEncoder().encode(JSON.stringify(result.data)).length >
+    MAX_PROJECT_SIZE
+  )
+    throw new Error(
+      "This project is too large after adding the new templates. The limit is 750 KB. Your saved copy is unchanged.",
+    );
   return result.data;
 }
 

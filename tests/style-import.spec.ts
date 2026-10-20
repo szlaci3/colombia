@@ -84,7 +84,14 @@ test("reviews and edits a detected palette before applying it to every page, wit
   await page.getByLabel("Imported heading style").selectOption("sans");
   await page.screenshot({ path: "test-results/formlane-style-import.png" });
   await page.getByRole("button", { name: "Apply to all templates" }).click();
-  for (const template of ["Kanban board", "Data table", "Webshop"]) {
+  for (const template of [
+    "Kanban board",
+    "Data table",
+    "Blog",
+    "Social feed",
+    "Dashboard",
+    "Webshop",
+  ]) {
     await page
       .getByRole("navigation", { name: "Templates" })
       .getByRole("button", { name: template, exact: true })

@@ -7,7 +7,14 @@ const id = z
   .min(1)
   .max(80)
   .regex(/^[a-zA-Z0-9_-]+$/);
-export const pageIds = ["webshop", "kanban", "table"] as const;
+export const pageIds = [
+  "webshop",
+  "kanban",
+  "table",
+  "blog",
+  "social",
+  "dashboard",
+] as const;
 export type PageId = (typeof pageIds)[number];
 export const themeIds = ["grove", "atelier", "tide", "mono"] as const;
 export type ThemeId = (typeof themeIds)[number];
@@ -67,11 +74,13 @@ const columnSchema = z.object({
   title: text,
   cards: z.array(cardSchema).max(100),
 });
+export const textAppearances = ["plain", "article", "post", "metric"] as const;
 export const textBlockSchema = z.object({
   id,
   type: z.literal("text"),
   title: text,
   body: text,
+  appearance: z.enum(textAppearances).optional(),
 });
 export const tableBlockSchema = z.object({
   id,
@@ -125,6 +134,21 @@ export const projectSchema = z
       webshop: z.array(blockSchema).min(1).max(24),
       kanban: z.array(blockSchema).min(1).max(24),
       table: z.array(blockSchema).min(1).max(24),
+      blog: z
+        .array(blockSchema)
+        .min(1)
+        .max(24)
+        .default(() => createTemplate("blog")),
+      social: z
+        .array(blockSchema)
+        .min(1)
+        .max(24)
+        .default(() => createTemplate("social")),
+      dashboard: z
+        .array(blockSchema)
+        .min(1)
+        .max(24)
+        .default(() => createTemplate("dashboard")),
     }),
   })
   .superRefine((project, ctx) => {
@@ -311,8 +335,108 @@ export function createProject(): Project {
       webshop: [hero, createBlock("products"), createBlock("quote")],
       kanban: [createBlock("board"), createBlock("text")],
       table: [createBlock("table"), createBlock("text")],
+      blog: createTemplate("blog"),
+      social: createTemplate("social"),
+      dashboard: createTemplate("dashboard"),
     },
   };
+}
+
+/** Additional templates compose existing blocks; variants remain editable text. */
+export function createTemplate(page: "blog" | "social" | "dashboard"): Block[] {
+  const hero = (
+    eyebrow: string,
+    title: string,
+    description: string,
+  ): Block => ({ id: uid(), type: "hero", eyebrow, title, description });
+  const copy = (
+    appearance: "article" | "post" | "metric",
+    title: string,
+    body: string,
+  ): Block => ({ id: uid(), type: "text", appearance, title, body });
+  switch (page) {
+    case "blog":
+      return [
+        hero(
+          "The studio journal",
+          "Good stories.\nA little room to reflect.",
+          "Notes on making, living, and finding a little more meaning in the everyday.",
+        ),
+        copy(
+          "article",
+          "Room for the things that matter",
+          "A favourite cup. A quiet corner. A little morning light. The spaces we remember rarely need more things; they need room for the right ones.\n\nThis week, we’re exploring what happens when we leave a little space unfilled.",
+        ),
+        copy(
+          "article",
+          "The beauty in beginning again",
+          "Our first sketches never look like the final idea. That is part of the pleasure: trying a new direction, keeping the useful details, and letting the rest go.\n\nBring a small experiment to your next conversation. See what takes shape.",
+        ),
+        copy(
+          "article",
+          "Made slowly, shared generously",
+          "Good work carries a little of the people behind it. We visited the studio to talk about everyday rituals, honest materials, and making something worth keeping.",
+        ),
+      ];
+    case "social":
+      return [
+        hero(
+          "Our community",
+          "A few good people.\nA world of possibility.",
+          "Share a small discovery, a work in progress, or a question worth exploring together.",
+        ),
+        copy(
+          "post",
+          "Alex Morgan",
+          "A little corner of the studio is taking shape. We moved the table towards the morning light and suddenly the whole room feels different.\n\nWhat is one small change that made your space feel more like you?",
+        ),
+        copy(
+          "post",
+          "Sam Rivera",
+          "Today’s small discovery: keeping a notebook beside the coffee pot. Good ideas tend to arrive before the first meeting.\n\nCollecting a few of our favourite everyday rituals for the journal.",
+        ),
+        copy(
+          "post",
+          "Jordan Lee",
+          "An early sketch, a shared conversation, and a new direction. Sometimes that is all a good beginning needs.\n\nWhat are you making room for this week?",
+        ),
+      ];
+    case "dashboard":
+      return [
+        hero(
+          "Workspace overview · example figures",
+          "A clear view.\nA thoughtful next step.",
+          "A shared overview for your next team conversation. Edit these example figures and plans to explore a different direction.",
+        ),
+        copy("metric", "Ideas in motion", "12\nAcross three small experiments"),
+        copy(
+          "metric",
+          "Ready to share",
+          "04\nA little progress worth celebrating",
+        ),
+        copy(
+          "metric",
+          "Team check-ins",
+          "08\nConversations that keep us moving",
+        ),
+        {
+          id: uid(),
+          type: "table",
+          title: "What we’re making room for",
+          headers: ["Initiative", "Owner", "Next step", "Status"],
+          rows: [
+            [
+              "A warmer welcome",
+              "Alex",
+              "Explore the first impression",
+              "In progress",
+            ],
+            ["Our studio journal", "Sam", "Share the first story", "Active"],
+            ["A community moment", "Jordan", "Collect a few ideas", "Pending"],
+          ],
+        },
+      ];
+  }
 }
 
 export function moveItem<T>(items: T[], from: number, to: number): T[] {

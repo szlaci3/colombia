@@ -40,14 +40,21 @@ test("edits text, cancels with Escape, and restores it after reloading", async (
   await expect(title).toHaveText("Good ideas live here.");
 });
 
-test("applies brand and theme to all three pages and preserves edits when switching", async ({
+test("applies brand and theme to all six pages and preserves edits when switching", async ({
   page,
 }) => {
   await page.getByLabel("Brand name", { exact: true }).fill("Fieldwork");
   await page.getByRole("button", { name: "Tide theme" }).click();
   await page.getByLabel("Headings Typography").selectOption("sans");
   await edit(page, "Product 1 name", "Fieldwork vase");
-  for (const name of ["Kanban board", "Data table", "Webshop"]) {
+  for (const name of [
+    "Kanban board",
+    "Data table",
+    "Blog",
+    "Social feed",
+    "Dashboard",
+    "Webshop",
+  ]) {
     await navigate(page, name);
     await expect(page.locator(".prototype-canvas")).toHaveAttribute(
       "data-theme",
@@ -423,7 +430,14 @@ test("works on a phone without page overflow and opens template navigation", asy
 test("has no serious accessibility issues in each template or in dialogs", async ({
   page,
 }) => {
-  for (const template of ["Webshop", "Kanban board", "Data table"]) {
+  for (const template of [
+    "Webshop",
+    "Kanban board",
+    "Data table",
+    "Blog",
+    "Social feed",
+    "Dashboard",
+  ]) {
     await navigate(page, template);
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
@@ -462,7 +476,14 @@ test("has no browser errors during editing or a production-like page reload", as
   page.on("pageerror", (error) => errors.push(error.message));
   await page.setViewportSize({ width: 1440, height: 1100 });
   await page.reload();
-  for (const name of ["Kanban board", "Data table", "Webshop"]) {
+  for (const name of [
+    "Kanban board",
+    "Data table",
+    "Blog",
+    "Social feed",
+    "Dashboard",
+    "Webshop",
+  ]) {
     await navigate(page, name);
     await page.evaluate(() => document.fonts.ready);
     await page.screenshot({
@@ -485,7 +506,14 @@ test("maintains accessible contrast across all curated themes", async ({
     await page
       .getByRole("button", { name: `${theme} theme`, exact: true })
       .click();
-    for (const template of ["Webshop", "Kanban board", "Data table"]) {
+    for (const template of [
+      "Webshop",
+      "Kanban board",
+      "Data table",
+      "Blog",
+      "Social feed",
+      "Dashboard",
+    ]) {
       await navigate(page, template);
       const results = await new AxeBuilder({ page })
         .withRules(["color-contrast"])

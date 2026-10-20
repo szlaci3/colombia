@@ -11,10 +11,17 @@ import {
 } from "./model";
 
 describe("project invariants", () => {
-  it("creates three independently editable pages with unique component IDs", () => {
+  it("creates six independently editable pages with unique component IDs", () => {
     const project = createProject();
     expect(projectSchema.safeParse(project).success).toBe(true);
-    expect(Object.keys(project.pages)).toEqual(["webshop", "kanban", "table"]);
+    expect(Object.keys(project.pages)).toEqual([
+      "webshop",
+      "kanban",
+      "table",
+      "blog",
+      "social",
+      "dashboard",
+    ]);
     const another = createProject();
     expect(another.pages.webshop[0].id).not.toBe(project.pages.webshop[0].id);
   });

@@ -18,11 +18,13 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
+  rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import {
   ArrowDownToLine,
   ArrowRight,
   ArrowUpRight,
+  BookOpen,
   Check,
   ChevronDown,
   ChevronRight,
@@ -32,6 +34,7 @@ import {
   ExternalLink,
   FileJson,
   Layers,
+  LayoutDashboard,
   Leaf,
   Link,
   Menu,
@@ -47,6 +50,7 @@ import {
   Table2,
   Undo2,
   Upload,
+  Users,
   X,
 } from "lucide-react";
 import { blockNames, SortableBlock } from "./components/Blocks";
@@ -84,6 +88,7 @@ const pages = {
     icon: ShoppingBag,
     number: "01",
     description: "Thoughtful products. Your point of view.",
+    navTitle: "Collection",
   },
   kanban: {
     title: "Kanban board",
@@ -91,6 +96,7 @@ const pages = {
     icon: Columns3,
     number: "02",
     description: "A shared space for the next big idea.",
+    navTitle: "Our process",
   },
   table: {
     title: "Data table",
@@ -98,6 +104,31 @@ const pages = {
     icon: Table2,
     number: "03",
     description: "Bring a little order to everything.",
+    navTitle: "Our people",
+  },
+  blog: {
+    title: "Blog",
+    subtitle: "Stories worth sharing",
+    icon: BookOpen,
+    number: "04",
+    description: "An editorial home for your ideas.",
+    navTitle: "Journal",
+  },
+  social: {
+    title: "Social feed",
+    subtitle: "A place for good company",
+    icon: Users,
+    number: "05",
+    description: "Small discoveries. Shared conversations.",
+    navTitle: "Community",
+  },
+  dashboard: {
+    title: "Dashboard",
+    subtitle: "See the next step clearly",
+    icon: LayoutDashboard,
+    number: "06",
+    description: "A thoughtful overview of what’s moving.",
+    navTitle: "Overview",
   },
 };
 const library: {
@@ -463,7 +494,7 @@ export default function App() {
             <Leaf size={15} />
           </div>
           <div className="sidebar-label">
-            PLAYGROUND <span>03</span>
+            PLAYGROUND <span>{String(pageIds.length).padStart(2, "0")}</span>
           </div>
           <nav aria-label="Templates">
             {pageIds.map((id) => {
@@ -725,6 +756,7 @@ export default function App() {
               >
                 <div
                   className="prototype-canvas"
+                  data-template={page}
                   style={themeStyle}
                   data-theme={
                     project.theme.custom ? "custom" : project.theme.preset
@@ -750,11 +782,7 @@ export default function App() {
                           className={page === id ? "current" : ""}
                           onClick={() => navigate(id)}
                         >
-                          {id === "webshop"
-                            ? "Collection"
-                            : id === "kanban"
-                              ? "Our process"
-                              : "Our people"}
+                          {pages[id].navTitle}
                         </button>
                       ))}
                     </div>
@@ -780,46 +808,55 @@ export default function App() {
                   >
                     <SortableContext
                       items={blocks.map((block) => block.id)}
-                      strategy={verticalListSortingStrategy}
+                      strategy={
+                        page === "dashboard"
+                          ? rectSortingStrategy
+                          : verticalListSortingStrategy
+                      }
                     >
-                      {blocks.map((block, index) => (
-                        <SortableBlock
-                          key={block.id}
-                          block={block}
-                          index={index}
-                          count={blocks.length}
-                          preview={preview}
-                          selected={selected === block.id}
-                          select={() => setSelected(block.id)}
-                          update={updateBlock}
-                          move={(to) =>
-                            change((draft) => {
-                              draft.pages[page] = moveItem(
-                                draft.pages[page],
-                                index,
-                                to,
-                              );
-                            })
-                          }
-                          duplicate={() =>
-                            change((draft) => {
-                              draft.pages[page].splice(
-                                index + 1,
-                                0,
-                                duplicateBlock(block),
-                              );
-                            })
-                          }
-                          remove={() => {
-                            change((draft) => {
-                              draft.pages[page] = draft.pages[page].filter(
-                                (b) => b.id !== block.id,
-                              );
-                            });
-                            setSelected(null);
-                          }}
-                        />
-                      ))}
+                      <div
+                        className={`template-sections ${page === "dashboard" ? "dashboard-grid" : ""}`}
+                      >
+                        {blocks.map((block, index) => (
+                          <SortableBlock
+                            key={block.id}
+                            block={block}
+                            template={page}
+                            index={index}
+                            count={blocks.length}
+                            preview={preview}
+                            selected={selected === block.id}
+                            select={() => setSelected(block.id)}
+                            update={updateBlock}
+                            move={(to) =>
+                              change((draft) => {
+                                draft.pages[page] = moveItem(
+                                  draft.pages[page],
+                                  index,
+                                  to,
+                                );
+                              })
+                            }
+                            duplicate={() =>
+                              change((draft) => {
+                                draft.pages[page].splice(
+                                  index + 1,
+                                  0,
+                                  duplicateBlock(block),
+                                );
+                              })
+                            }
+                            remove={() => {
+                              change((draft) => {
+                                draft.pages[page] = draft.pages[page].filter(
+                                  (b) => b.id !== block.id,
+                                );
+                              });
+                              setSelected(null);
+                            }}
+                          />
+                        ))}
+                      </div>
                     </SortableContext>
                   </DndContext>
                   {!preview && (
@@ -989,7 +1026,7 @@ export default function App() {
                     </div>
                     <div className="brand-applied">
                       <Check size={14} />
-                      <span>Applied to all 3 templates</span>
+                      <span>Applied to all {pageIds.length} templates</span>
                     </div>
                     <div className="import-style-note">
                       <span className="coming-label">FROM YOUR WEBSITE</span>
@@ -1129,7 +1166,7 @@ export default function App() {
               return;
             setModal(null);
             setToast(
-              "Website style applied to all three templates. You can undo this change.",
+              `Website style applied to all ${pageIds.length} templates. You can undo this change.`,
             );
           }}
         />
@@ -1184,8 +1221,8 @@ export default function App() {
           close={() => setModal(null)}
         >
           <p className="dialog-description">
-            Share a snapshot of all three templates, exactly as they are now.
-            Your next edits stay with you.
+            Share a snapshot of all {pageIds.length} templates, exactly as they
+            are now. Your next edits stay with you.
           </p>
           <label className="share-label" htmlFor="share-link">
             Snapshot link
@@ -1284,9 +1321,9 @@ export default function App() {
       {modal === "reset" && (
         <Dialog title="A fresh place to start?" close={() => setModal(null)}>
           <p className="dialog-description">
-            This replaces all three templates and your brand settings. Export a
-            copy first if you want to keep this project. You can also undo this
-            change during this session.
+            This replaces all {pageIds.length} templates and your brand
+            settings. Export a copy first if you want to keep this project. You
+            can also undo this change during this session.
           </p>
           <div className="dialog-actions">
             <button className="button subtle" onClick={exportProject}>

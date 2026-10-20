@@ -11,6 +11,7 @@ import { Dialog } from "./Dialog";
 import { ContentImport } from "./ContentImport";
 import { StyleEvidence } from "./StyleEvidence";
 import type { ContentSection } from "../content";
+import { pageIds } from "../model";
 import {
   paletteProblems,
   styleImportSchema,
@@ -373,7 +374,8 @@ export function WebsiteImport({
               )}
               <div className="import-apply">
                 <span>
-                  <Check size={14} /> All 3 templates. One undoable change.
+                  <Check size={14} /> All {pageIds.length} templates. One
+                  undoable change.
                 </span>
                 <button
                   className="button dark"

@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "name": "Our original meeting",
+  "brand": "Nook",
+  "theme": { "preset": "tide", "font": "sans", "radius": 18 },
+  "pages": {
+    "webshop": [
+      {
+        "id": "legacy-hero",
+        "type": "hero",
+        "eyebrow": "Keep our work",
+        "title": "Our original welcome",
+        "description": "This content was written before the new templates existed."
+      }
+    ],
+    "kanban": [
+      {
+        "id": "legacy-board",
+        "type": "board",
+        "title": "Our existing plan",
+        "columns": [
+          {
+            "id": "legacy-column",
+            "title": "Next",
+            "cards": [
+              {
+                "id": "legacy-card",
+                "title": "Keep this idea",
+                "tag": "Design",
+                "person": "AM"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "table": [
+      {
+        "id": "legacy-table",
+        "type": "table",
+        "title": "Our contacts",
+        "headers": ["Name", "Status"],
+        "rows": [["Casey", "Active"]]
+      }
+    ]
+  }
+}

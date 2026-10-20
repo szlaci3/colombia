@@ -42,10 +42,21 @@ test("serves a compiled JavaScript module and starts the editor", async ({
   expect(errors).toEqual([]);
 });
 
-for (const template of ["webshop", "kanban", "table"]) {
+for (const template of [
+  "webshop",
+  "kanban",
+  "table",
+  "blog",
+  "social",
+  "dashboard",
+]) {
   test(`opens the deployed ${template} template directly`, async ({ page }) => {
     await page.goto(`/?template=${template}`);
     await expect(page.locator(".prototype-canvas")).toBeVisible();
+    await expect(page.locator(".prototype-canvas")).toHaveAttribute(
+      "data-template",
+      template,
+    );
     if (template === "webshop")
       await expect(
         page.getByRole("textbox", { name: "Hero headline", exact: true }),
@@ -54,6 +65,20 @@ for (const template of ["webshop", "kanban", "table"]) {
       await expect(page.locator(".board-columns")).toBeVisible();
     if (template === "table")
       await expect(page.getByRole("table")).toBeVisible();
+    if (template === "blog")
+      await expect(
+        page.locator('[data-text-appearance="article"]'),
+      ).toHaveCount(3);
+    if (template === "social")
+      await expect(page.locator('[data-text-appearance="post"]')).toHaveCount(
+        3,
+      );
+    if (template === "dashboard") {
+      await expect(page.locator('[data-text-appearance="metric"]')).toHaveCount(
+        3,
+      );
+      await expect(page.getByRole("table")).toBeVisible();
+    }
   });
 }
 
