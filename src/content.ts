@@ -8,34 +8,41 @@ import {
 } from "./model.ts";
 import { sourceSchema } from "./theme.ts";
 
-export const contentImportSchema = z
-  .object({
-    source: sourceSchema.pick({ url: true, title: true }),
-    scope: z.enum(["main", "article", "body"]),
-    markdown: z.string().min(1).max(100_000),
-    sections: z
-      .array(z.discriminatedUnion("type", [textBlockSchema, tableBlockSchema]))
-      .min(1)
-      .max(20),
-    notes: z.array(z.string().max(300)).max(12),
-  })
-  .superRefine((result, ctx) => {
-    const ids = new Set<string>();
-    for (const section of result.sections) {
-      if (ids.has(section.id))
-        ctx.addIssue({ code: "custom", message: "Duplicate section ID" });
-      ids.add(section.id);
-      if (
-        section.type === "table" &&
-        section.rows.some((row) => row.length !== section.headers.length)
-      )
-        ctx.addIssue({
-          code: "custom",
-          message: "Table rows must match the headers",
-        });
-    }
-  });
+const contentFields = {
+  markdown: z.string().min(1).max(100_000),
+  sections: z
+    .array(z.discriminatedUnion("type", [textBlockSchema, tableBlockSchema]))
+    .min(1)
+    .max(20),
+  notes: z.array(z.string().max(300)).max(12),
+};
+const reviewFields = z.object(contentFields).superRefine((result, ctx) => {
+  const ids = new Set<string>();
+  for (const section of result.sections) {
+    if (ids.has(section.id))
+      ctx.addIssue({ code: "custom", message: "Duplicate section ID" });
+    ids.add(section.id);
+    if (
+      section.type === "table" &&
+      section.rows.some((row) => row.length !== section.headers.length)
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Table rows must match the headers",
+      });
+  }
+});
+export const contentImportSchema = reviewFields.safeExtend({
+  source: sourceSchema.pick({ url: true, title: true }),
+  scope: z.enum(["main", "article", "body"]),
+});
+export const markdownImportSchema = reviewFields.safeExtend({
+  source: z.object({ title: z.string().max(120) }),
+  scope: z.literal("markdown"),
+});
 export type ContentImportResult = z.infer<typeof contentImportSchema>;
+export type MarkdownImportResult = z.infer<typeof markdownImportSchema>;
+export type ContentReview = ContentImportResult | MarkdownImportResult;
 export type ContentSection = ContentImportResult["sections"][number];
 
 export function appendImportedSections(

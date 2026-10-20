@@ -71,6 +71,59 @@ for (const endpoint of ["import-style", "import-content"]) {
   });
 }
 
+test("loads the Markdown tools on demand and imports a selected table without API requests", async ({
+  page,
+}) => {
+  const apiRequests: string[] = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.startsWith("/api/"))
+      apiRequests.push(request.url());
+  });
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Start from a website", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Page content", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Paste Markdown", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Use the meeting notes example" })
+    .click();
+  await page
+    .getByRole("button", { name: "Prepare sections", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Clear selection", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Tables", exact: true }).click();
+  await page
+    .getByRole("checkbox", {
+      name: "Include section 3: Our next steps",
+      exact: true,
+    })
+    .check();
+  await page
+    .getByRole("button", {
+      name: "Preview section 3: Our next steps",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole("table", {
+      name: "Preview table: Our next steps",
+      exact: true,
+    }),
+  ).toContainText("Sam");
+  await page
+    .getByRole("button", { name: "Add 1 section to Webshop", exact: true })
+    .click();
+  await expect(
+    page.getByRole("textbox", { name: "Row 1, Owner", exact: true }),
+  ).toHaveText("Alex");
+  expect(apiRequests).toEqual([]);
+});
+
 if (process.env.FORMLANE_IMPORT_URL) {
   test("imports a real website through the hosted function and applies the reviewed style", async ({
     page,

@@ -43,6 +43,22 @@ test("reviews selected content, imports text and a table in one undoable step, a
       .map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target) })),
   ).toEqual([]);
   await page.screenshot({ path: "test-results/formlane-content-import.png" });
+  await page.getByRole("button", { name: "Tables", exact: true }).click();
+  await page.getByLabel("Find sections", { exact: true }).fill("Jordan");
+  await page
+    .getByRole("button", { name: /Preview section \d+: Meeting plan/ })
+    .click();
+  await expect(
+    page.getByRole("table", {
+      name: "Preview table: Meeting plan",
+      exact: true,
+    }),
+  ).toContainText("Jordan");
+  await expect(page.locator(".selection-summary")).toContainText(
+    "4 selected outside this filter",
+  );
+  await page.getByLabel("Find sections", { exact: true }).fill("");
+  await page.getByRole("button", { name: "All sections", exact: true }).click();
   await page
     .getByRole("button", { name: "Clear selection", exact: true })
     .click();

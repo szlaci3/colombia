@@ -187,10 +187,11 @@ export function extractContent(html: string, url: string): ContentImportResult {
     }
     sections.push({ ...section, id: `content-${sections.length + 1}` });
   };
-  function flush() {
+  function flush(keepHeadingOnly = true) {
     let text = fragments.join("\n\n").trim();
     if (!text && !pendingHeading) return;
-    if (!text) push({ type: "text", title: short(heading), body: "" });
+    if (!text && keepHeadingOnly)
+      push({ type: "text", title: short(heading), body: "" });
     while (text) {
       let end =
         text.length <= 2000 ? text.length : text.lastIndexOf("\n", 2000);
@@ -221,7 +222,7 @@ export function extractContent(html: string, url: string): ContentImportResult {
         return;
       }
       if (tag === "table") {
-        flush();
+        flush(false);
         const table = readTable($.html(element), notes);
         if (table)
           push({

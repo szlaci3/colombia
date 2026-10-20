@@ -7,13 +7,14 @@ import {
   FileText,
   LoaderCircle,
   Search,
-  Table2,
 } from "lucide-react";
 import {
   contentImportSchema,
-  type ContentImportResult,
+  type ContentReview,
   type ContentSection,
 } from "../content";
+import { markdownExample, MARKDOWN_LIMIT } from "../markdown-example";
+import { ContentSections } from "./ContentSections";
 
 export function ContentImport({
   url,
@@ -28,7 +29,11 @@ export function ContentImport({
   destination: string;
   apply: (sections: ContentSection[]) => void;
 }) {
-  const [result, setResult] = useState<ContentImportResult | null>(null);
+  const [result, setResult] = useState<ContentReview | null>(null);
+  const [input, setInput] = useState<"url" | "markdown">("url");
+  const [pasted, setPasted] = useState("");
+  const [title, setTitle] = useState("");
+  const [reviewId, setReviewId] = useState(0);
   const [chosen, setChosen] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -37,6 +42,51 @@ export function ContentImport({
   const request = useRef<AbortController | null>(null);
   const markdown = useRef<HTMLTextAreaElement>(null);
   useEffect(() => () => request.current?.abort(), []);
+  function accept(next: ContentReview) {
+    setResult(next);
+    setChosen(next.sections.slice(0, slots).map((section) => section.id));
+    setView("sections");
+    setReviewId((value) => value + 1);
+  }
+  function switchInput(next: "url" | "markdown") {
+    if (next === input) return;
+    request.current?.abort();
+    request.current = null;
+    setBusy(false);
+    setResult(null);
+    setError("");
+    setStatus("");
+    setChosen([]);
+    setInput(next);
+  }
+  async function prepare(event: React.FormEvent) {
+    event.preventDefault();
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
+    setBusy(true);
+    setError("");
+    setStatus("");
+    setResult(null);
+    try {
+      const adapter = await import("../markdown-import").catch(() => {
+        throw new Error(
+          "Markdown tools could not load. Reload the page and try again.",
+        );
+      });
+      if (controller.signal.aborted) return;
+      accept(adapter.importMarkdown(pasted, title));
+    } catch (failure) {
+      if (!controller.signal.aborted)
+        setError(
+          failure instanceof Error
+            ? failure.message
+            : "This Markdown could not be prepared. Try a shorter document.",
+        );
+    } finally {
+      if (request.current === controller) setBusy(false);
+    }
+  }
   async function analyze(event: React.FormEvent) {
     event.preventDefault();
     request.current?.abort();
@@ -77,11 +127,7 @@ export function ContentImport({
           "This page returned unsupported content. Your project is unchanged.",
         );
       if (controller.signal.aborted) return;
-      setResult(validated.data);
-      setChosen(
-        validated.data.sections.slice(0, slots).map((section) => section.id),
-      );
-      setView("sections");
+      accept(validated.data);
     } catch (failure) {
       if (!controller.signal.aborted)
         setError(
@@ -132,56 +178,160 @@ export function ContentImport({
   return (
     <div className="content-import">
       <p className="dialog-description">
-        Collect a page’s headings, text, lists, links, and tables. Download
-        Markdown, or choose sections to add to your prototype.
+        Bring in a public page or paste Markdown. Review its headings, text,
+        lists, and tables, then choose sections to add to your prototype.
       </p>
-      <form
-        className="style-import-form"
-        onSubmit={(event) => void analyze(event)}
+      <div
+        className="content-input-toggle"
+        role="group"
+        aria-label="Content input"
       >
-        <label htmlFor="content-url">Content website URL</label>
-        <div>
-          <input
-            id="content-url"
-            type="url"
-            required
-            maxLength={2000}
-            placeholder="https://your-company.com/about"
-            value={url}
-            onChange={(event) => setUrl(event.target.value)}
-            disabled={busy}
-          />
-          <button className="button dark" disabled={busy}>
-            {busy ? (
-              <LoaderCircle className="spin" size={15} />
-            ) : (
-              <Search size={15} />
-            )}{" "}
-            {busy ? "Reading content…" : "Read page"}
-          </button>
-        </div>
-        <p>
-          Public HTTPS pages only. Content is read without executing scripts or
-          using your login.
-        </p>
         <button
-          className="content-example"
-          type="button"
-          disabled={busy}
-          onClick={() =>
-            setUrl("https://formlane.netlify.app/examples/studio-notes.html")
-          }
+          aria-pressed={input === "url"}
+          onClick={() => switchInput("url")}
         >
-          Try the studio notes example
+          Website URL
         </button>
-      </form>
+        <button
+          aria-pressed={input === "markdown"}
+          onClick={() => switchInput("markdown")}
+        >
+          Paste Markdown
+        </button>
+      </div>
+      {input === "url" ? (
+        <form
+          className="style-import-form"
+          onSubmit={(event) => void analyze(event)}
+        >
+          <label htmlFor="content-url">Content website URL</label>
+          <div>
+            <input
+              id="content-url"
+              type="url"
+              required
+              maxLength={2000}
+              placeholder="https://your-company.com/about"
+              value={url}
+              onChange={(event) => {
+                setUrl(event.target.value);
+                setResult(null);
+                setChosen([]);
+                setStatus("");
+                setError("");
+              }}
+              disabled={busy}
+            />
+            <button className="button dark" disabled={busy}>
+              {busy ? (
+                <LoaderCircle className="spin" size={15} />
+              ) : (
+                <Search size={15} />
+              )}{" "}
+              {busy ? "Reading content…" : "Read page"}
+            </button>
+          </div>
+          <p>
+            Public HTTPS pages only. Content is read without executing scripts
+            or using your login.
+          </p>
+          <button
+            className="content-example"
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setUrl("https://formlane.netlify.app/examples/studio-notes.html");
+              setResult(null);
+              setChosen([]);
+              setStatus("");
+              setError("");
+            }}
+          >
+            Try the studio notes example
+          </button>
+        </form>
+      ) : (
+        <form
+          className="markdown-import-form"
+          onSubmit={(event) => void prepare(event)}
+        >
+          <label htmlFor="markdown-title">Markdown title (optional)</label>
+          <input
+            id="markdown-title"
+            disabled={busy}
+            maxLength={120}
+            value={title}
+            placeholder="Uses the first heading when left empty"
+            onChange={(event) => {
+              setTitle(event.target.value);
+              setResult(null);
+              setStatus("");
+            }}
+          />
+          <label htmlFor="markdown-input">Your Markdown</label>
+          <textarea
+            id="markdown-input"
+            disabled={busy}
+            value={pasted}
+            placeholder="# Your next idea"
+            spellCheck={false}
+            aria-describedby="markdown-input-help"
+            onChange={(event) => {
+              setPasted(event.target.value);
+              setResult(null);
+              setStatus("");
+              setError(
+                event.target.value.length > MARKDOWN_LIMIT
+                  ? "Markdown is limited to 100,000 characters. Try a shorter document."
+                  : "",
+              );
+            }}
+          />
+          <p id="markdown-input-help">
+            Processed in this browser. No text, links, or images are sent to a
+            server. {pasted.length.toLocaleString("en-US")} / 100,000
+            characters.
+          </p>
+          <div>
+            <button
+              className="content-example"
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setPasted(markdownExample);
+                setTitle("");
+                setResult(null);
+                setError("");
+                setStatus("");
+              }}
+            >
+              Use the meeting notes example
+            </button>
+            <button
+              className="button dark"
+              disabled={
+                busy || !pasted.trim() || pasted.length > MARKDOWN_LIMIT
+              }
+            >
+              {busy ? (
+                <LoaderCircle className="spin" size={15} />
+              ) : (
+                <FileText size={15} />
+              )}{" "}
+              {busy ? "Preparing sections…" : "Prepare sections"}
+            </button>
+          </div>
+        </form>
+      )}
       {busy && (
         <div className="import-progress" role="status">
           <FileText size={18} />
           <div>
             <strong>Making a little room for the story.</strong>
             <span>
-              Reading the page’s main content and preparing editable sections.
+              {input === "markdown"
+                ? "Preparing editable sections in this browser."
+                : "Reading the page’s main content and preparing editable sections."}
             </span>
           </div>
           <button
@@ -204,18 +354,26 @@ export function ContentImport({
           <div className="style-source">
             <span className="panel-eyebrow">REVIEW THE CONTENT</span>
             <h3>{result.source.title}</h3>
-            <a href={result.source.url} target="_blank" rel="noreferrer">
-              {new URL(result.source.url).hostname}
-            </a>
+            {result.scope === "markdown" ? (
+              <p className="pasted-source">
+                Pasted Markdown · kept in this browser
+              </p>
+            ) : (
+              <a href={result.source.url} target="_blank" rel="noreferrer">
+                {new URL(result.source.url).hostname}
+              </a>
+            )}
           </div>
           <div className="content-export">
             <span>
               {result.sections.length} editable sections ·{" "}
-              {result.scope === "body"
-                ? "Page body"
-                : result.scope === "main"
-                  ? "Main content"
-                  : "Article"}
+              {result.scope === "markdown"
+                ? "Pasted Markdown"
+                : result.scope === "body"
+                  ? "Page body"
+                  : result.scope === "main"
+                    ? "Main content"
+                    : "Article"}
             </span>
             <div>
               <button className="button subtle" onClick={() => void copy()}>
@@ -247,72 +405,14 @@ export function ContentImport({
             </button>
           </div>
           {view === "sections" ? (
-            <>
-              <div className="selection-summary">
-                <span>
-                  {selected.length} selected · {slots} spaces in {destination}
-                </span>
-                <div>
-                  <button
-                    onClick={() =>
-                      setChosen(
-                        result.sections
-                          .slice(0, slots)
-                          .map((section) => section.id),
-                      )
-                    }
-                  >
-                    Select available
-                  </button>
-                  <button onClick={() => setChosen([])}>Clear selection</button>
-                </div>
-              </div>
-              <div className="content-sections">
-                {result.sections.map((section, index) => {
-                  const checked = chosen.includes(section.id);
-                  return (
-                    <label
-                      className={`content-section-choice ${checked ? "chosen" : ""}`}
-                      key={section.id}
-                    >
-                      <input
-                        type="checkbox"
-                        aria-label={`Include section ${index + 1}: ${section.title || "Untitled section"}`}
-                        checked={checked}
-                        disabled={!checked && selected.length >= slots}
-                        onChange={() =>
-                          setChosen(
-                            checked
-                              ? chosen.filter((id) => id !== section.id)
-                              : [...chosen, section.id],
-                          )
-                        }
-                      />
-                      <span className="content-section-icon">
-                        {section.type === "table" ? (
-                          <Table2 size={17} />
-                        ) : (
-                          <FileText size={17} />
-                        )}
-                      </span>
-                      <span className="content-section-copy">
-                        <strong>{section.title || "Untitled section"}</strong>
-                        <small>
-                          {section.type === "table"
-                            ? `${section.rows.length} rows · ${section.headers.length} columns`
-                            : section.body.slice(0, 180) || "Heading only"}
-                        </small>
-                        {section.type === "table" && (
-                          <span className="table-preview-label">
-                            {section.headers.join(" · ")}
-                          </span>
-                        )}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </>
+            <ContentSections
+              key={reviewId}
+              sections={result.sections}
+              chosen={chosen}
+              setChosen={setChosen}
+              slots={slots}
+              destination={destination}
+            />
           ) : (
             <textarea
               ref={markdown}

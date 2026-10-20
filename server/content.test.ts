@@ -10,6 +10,14 @@ const example = readFileSync(
 const base = "https://formlane.netlify.app/examples/studio-notes.html";
 
 describe("webpage content extraction", () => {
+  it("uses a table-only heading for the table without offering a duplicate empty section", () => {
+    const result = extractContent(
+      "<main><h1>Plan</h1><table><tr><th>Idea</th><th>Owner</th></tr><tr><td>Explore</td><td>Alex</td></tr></table></main>",
+      base,
+    );
+    expect(result.sections).toHaveLength(1);
+    expect(result.sections[0]).toMatchObject({ type: "table", title: "Plan" });
+  });
   it("exports headings, numbered lists, absolute links, captions, tables, quotes, and code from main content", () => {
     const result = extractContent(example, base);
     expect(result.scope).toBe("main");
