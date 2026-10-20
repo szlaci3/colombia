@@ -16,28 +16,34 @@
     "test:e2e": "playwright test",
     "test:deployment": "playwright test tests/deployment.spec.ts",
     "check": "npm run test && npm run test:e2e",
-    "format": "prettier --write src tests *.ts *.json index.html README.md docs .github"
+    "format": "prettier --write src server netlify tests *.ts *.json index.html README.md docs .github"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@fontsource-variable/dm-sans": "^5.3.0",
+    "cheerio": "^1.2.0",
+    "colorjs.io": "^0.7.1",
+    "ipaddr.js": "^2.5.0",
     "lucide-react": "^1.60.0",
     "lz-string": "^1.5.0",
+    "postcss": "^8.5.31",
+    "postcss-value-parser": "^4.2.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
+    "@netlify/functions": "^6.0.2",
     "@playwright/test": "^1.64.1",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "prettier": "^3.9.10",
-    "typescript": "^7.0.2",
+    "typescript": "~5.9.3",
     "vite": "^8.3.4",
     "vitest": "^5.0.5"
   }

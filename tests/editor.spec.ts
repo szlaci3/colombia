@@ -161,14 +161,21 @@ test("adds, duplicates, rearranges, and removes a section, with all changes reve
 
 test("rearranges sections with a keyboard drag handle", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1600 });
+  await page.evaluate(() => document.fonts.ready);
   const handle = page.getByRole("button", {
     name: "Drag Hero section",
     exact: true,
   });
   await handle.focus();
   await page.keyboard.press("Space");
+  await expect(handle).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("ArrowDown");
-  await page.waitForTimeout(200);
+  const targetId = await page
+    .locator('[data-block-type="products"]')
+    .getAttribute("data-block-id");
+  await expect(page.locator('[aria-live="assertive"]')).toContainText(
+    `was moved over droppable area ${targetId}`,
+  );
   await page.keyboard.press("Space");
   await expect(page.locator("[data-block-type]").first()).toHaveAttribute(
     "data-block-type",

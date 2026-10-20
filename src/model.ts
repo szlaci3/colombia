@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { customThemeSchema } from "./theme";
 
 const text = z.string().max(2000);
 const id = z
@@ -111,6 +112,7 @@ export const projectSchema = z
       preset: z.enum(themeIds),
       font: z.enum(["serif", "sans"]),
       radius: z.number().int().min(0).max(24),
+      custom: customThemeSchema.optional(),
     }),
     pages: z.object({
       webshop: z.array(blockSchema).min(1).max(24),

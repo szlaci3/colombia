@@ -13,7 +13,15 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "types": ["vite/client", "vitest/globals", "node"]
   },
-  "include": ["src", "vite.config.ts", "playwright.config.ts", "tests"]
+  "include": [
+    "src",
+    "server",
+    "netlify",
+    "vite.config.ts",
+    "playwright.config.ts",
+    "tests"
+  ]
 }

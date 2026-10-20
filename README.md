@@ -19,12 +19,13 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. No account, API key, database, or environment file is required. Fonts and illustrations are bundled locally; the application makes no external API requests.
+Open the local URL printed by Vite. No account, API key, database, or environment file is required. Fonts and illustrations are bundled locally. The editor works locally; website style import uses a same-origin endpoint to read the public website you submit. Both `npm run dev` and `npm run preview` provide that endpoint locally.
 
 ## First version
 
 - **Three pages:** webshop, Kanban, and data table, with direct `?template=webshop`, `?template=kanban`, and `?template=table` links and browser history support.
 - **One shared brand:** four curated themes (Grove, Atelier, Tide, Mono), brand name, serif/sans headings, and adjustable corners.
+- **Website style import:** choose “Start from a website”, enter a public HTTPS URL, then review detected colors, heading style, and corners before applying them to all three templates. Edit the palette, optionally rename the brand, or cancel without changing the project. Imports are undoable and survive saving, sharing, and export.
 - **Inline editing:** edit headings, descriptions, products, table headers/cells, Kanban column titles/cards/tags/assignees, and testimonials. Enter commits, Escape cancels, and Shift+Enter adds a line in multiline fields. Paste becomes plain text.
 - **Structural editing:** add/delete products, table rows/columns, Kanban columns/cards, and six kinds of sections. Move products with arrows; move cards with drag handles or their move menus. Sections support dragging, keyboard dragging, move arrows, duplication, and deletion.
 - **Undo/redo:** 50 project-wide history steps, with Ctrl/⌘ Z, Ctrl/⌘ Shift Z, and Ctrl/⌘ Y outside text fields. History lasts for the current session.
@@ -45,17 +46,21 @@ npm run check
 
 `npm run check` runs unit tests, TypeScript checks, the production build, and Chromium end-to-end tests against that production bundle. Browser tests cover editing, persistence, theme propagation, table structure, card movement, pointer and keyboard drag-and-drop, undo/redo, sharing across browser contexts, real file export/import, invalid files, untrusted content, presentation, navigation, storage failure/recovery, mobile overflow, and automated accessibility checks across all themes. Playwright builds the app and manages its own local preview server.
 
+Style-import unit tests cover HTML/CSS evidence, modern colors, contrast adaptation, DNS/private-address rejection, redirects, input limits, and the function contract. Browser tests use controlled API responses for review, apply, cancel, failure, accessibility, and persistence; those are separate from live website/function verification.
+
 Individual commands: `npm test`, `npm run build`, and `npm run test:e2e`. Failed browser tests retain traces under `test-results/`. CI runs the same checks on pushes and pull requests.
 
-To inspect the production bundle, run `npm run build` followed by `npm run preview`. Any static host can serve `dist/`; templates use query parameters, so no route rewrite is required. A shared link must use a URL reachable by its recipient; a localhost link works only on that same machine.
+To inspect the production bundle, run `npm run build` followed by `npm run preview`. Any static host can serve the editor in `dist/`; website style import additionally requires the included server endpoint. Templates use query parameters, so no route rewrite is required. A shared link must use a URL reachable by its recipient; a localhost link works only on that same machine.
 
 ## Deploy on Netlify
 
-The deployed URL is [https://formlane.netlify.app](https://formlane.netlify.app). The repository’s `netlify.toml` configures Node.js 24, the build command `npm run build`, and the publish directory `dist`.
+The deployed URL is [https://formlane.netlify.app](https://formlane.netlify.app). The repository’s `netlify.toml` configures Node.js 24, the build command `npm run build`, the publish directory `dist`, and the function in `netlify/functions`. Git-based Netlify deployments publish the editor and `/api/import-style` together. TypeScript is pinned to 5.9 for compatibility with Netlify’s compiler-API tooling.
 
 For Git-based deployments, connect `szlaci3/colombia` with production branch `main` and the repository root as the base directory. Netlify reads the checked-in configuration on the next deployment. After adding this configuration to an existing site, trigger a new deployment if one does not start automatically.
 
 For a manual file/ZIP deployment, run `npm ci` and `npm run build` locally, then upload **only the generated `dist` folder** to the existing Netlify site. A manual upload does not execute the build command in `netlify.toml`. The uploaded site must have the built `index.html` at its root, with its `assets` directory alongside it.
+
+A `dist`-only upload supports the editor, but does not deploy the style-import function. Use the connected Git deployment for the complete app.
 
 If the page is blank and the console reports a module with MIME type `application/octet-stream`, inspect the deployed HTML. A script pointing to `/src/main.tsx` means the unbuilt repository was published. Redeploy the built `dist` output; changing the MIME type for `.tsx` does not compile TypeScript or JSX. The built HTML should reference a generated `/assets/*.js` module, served with a JavaScript content type.
 
@@ -67,16 +72,20 @@ npm run test:deployment
 Remove-Item Env:FORMLANE_BASE_URL
 ```
 
-The smoke checks verify the compiled module and its MIME type, load the actual editor without browser errors, and open all three template URLs. They use a separate browser context and do not change existing users’ saved projects. Without `FORMLANE_BASE_URL`, they build and check the local production bundle.
+The smoke checks verify the compiled module and its MIME type, load the actual editor without browser errors, open all three template URLs, and check the deployed function rejects unsafe targets. They use a separate browser context and do not change existing users’ saved projects. Without `FORMLANE_BASE_URL`, they build and check the local production bundle. To additionally exercise real extraction and application through the hosted UI, set `FORMLANE_IMPORT_URL` to a public HTTPS page before running the same command; remove that variable afterward. Real fetching is optional so normal CI never relies on third-party websites.
 
 ## Data and privacy
 
-The app stores one project under `formlane.project.v1` in browser local storage. There is no server-side storage or telemetry. Clearing browser data removes the saved project, so export a file for a durable backup. Shared links contain the **entire project**, including text in all three pages. Anyone with a link can read that snapshot and edit a copy; links have no access control or revocation. Use example data.
+The app stores one project under `formlane.project.v1` in browser local storage. There is no server-side project storage or app telemetry. Style import sends the submitted URL to the same-origin function; source pages are fetched without your cookies or login and are not stored by the app. The reviewed palette and its source URL/title/font name become project data. Clearing browser data removes the saved project, so export a file for a durable backup. Shared links contain the **entire project**, including all three pages and imported style provenance. Anyone with a link can read that snapshot and edit a copy; links have no access control or revocation. Use example data.
 
 Imports are schema-validated, with bounded sizes, fixed theme choices, unique IDs, and rectangular table checks. Imported strings render as text, never HTML. A project supports 24 sections per page, 24 products per collection, 20 table columns/100 rows, and 8 Kanban columns/100 cards per column. Files are limited to 750 KB and encoded snapshot payloads to 48,000 characters; export a file when a project outgrows sharing by link. Extremely long links may be truncated by other applications.
 
 ## Scope decisions
 
-This implements the discussion’s tightly scoped first version: establish three useful templates and a consistent editor before experimenting with arbitrary website extraction. URL-based style extraction, webpage-to-Markdown conversion, an AI chatbot, a recorded explainer video, accounts, real-time collaboration, free-positioned layouts, and production website/code generation are deferred. The tour is an interactive introduction, not a placeholder video or simulated AI assistant.
+The first version established three useful templates and a consistent editor. Website style import is the next increment: it analyzes static HTML, inline styles, and up to three linked stylesheets. It detects colors, a font category, and simple corner radii. Modern CSS colors and custom properties are supported on a best-effort basis. Dynamic/script-generated styles, CSS `@import`, image colors, spacing, shadows, exact font downloads, and source layouts are not reproduced. Blocked or unsupported pages return an error rather than a made-up theme. Review notes identify fallback colors, contrast adjustments, and local font substitutions. Dark source sites are adapted to light prototype backgrounds.
+
+The fetcher accepts public HTTPS hostnames on the standard port, rejects private/reserved DNS addresses, pins the vetted address to the TLS request, and revalidates every redirect. Imports have a 12-second deadline, three-redirect limit, 600 KB HTML/250 KB-per-stylesheet limits, and a Netlify rate limit of 10 requests per minute per IP/domain. Source scripts are never executed, and arbitrary CSS is never injected into the editor.
+
+Webpage-to-Markdown conversion, an AI chatbot, a recorded explainer video, accounts, real-time collaboration, free-positioned layouts, and production website/code generation remain deferred.
 
 See [the architecture notes](docs/architecture.md) for extension points and tradeoffs.

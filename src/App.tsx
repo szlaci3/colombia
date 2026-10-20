@@ -52,6 +52,7 @@ import {
 import { blockNames, SortableBlock } from "./components/Blocks";
 import { Dialog } from "./components/Dialog";
 import { Editable } from "./components/Editable";
+import { StyleImport } from "./components/StyleImport";
 import {
   createBlock,
   createProject,
@@ -167,7 +168,7 @@ export default function App() {
   const [inspector, setInspector] = useState<"brand" | "layers">("brand");
   const [selected, setSelected] = useState<string | null>(null);
   const [modal, setModal] = useState<
-    "share" | "library" | "help" | "reset" | null
+    "share" | "library" | "help" | "reset" | "style" | null
   >(null);
   const [toast, setToast] = useState("");
   const [notice, setNotice] = useState(initial.notice ?? "");
@@ -189,7 +190,7 @@ export default function App() {
     }),
   );
   const blocks = project.pages[page];
-  const preset = themePresets[project.theme.preset];
+  const preset = project.theme.custom ?? themePresets[project.theme.preset];
   const themeStyle = {
     "--brand-accent": preset.accent,
     "--brand-surface": preset.surface,
@@ -212,9 +213,10 @@ export default function App() {
         setToast(
           "This project has reached its 750 KB limit. Remove some content or start a new project.",
         );
-        return;
+        return false;
       }
       dispatch({ type: "change", project: next });
+      return true;
     },
     [project],
   );
@@ -641,12 +643,23 @@ export default function App() {
                   One visual identity. A few different ways to bring it to life.
                 </p>
               </div>
-              <button className="tour-button" onClick={() => setModal("help")}>
-                <span>
-                  <Play size={13} fill="currentColor" />
-                </span>{" "}
-                How it works <span className="tour-length">3 steps</span>
-              </button>
+              <div className="workspace-heading-actions">
+                <button
+                  className="button subtle"
+                  onClick={() => setModal("style")}
+                >
+                  <Link size={14} /> Start from a website
+                </button>
+                <button
+                  className="tour-button"
+                  onClick={() => setModal("help")}
+                >
+                  <span>
+                    <Play size={13} fill="currentColor" />
+                  </span>{" "}
+                  How it works <span className="tour-length">3 steps</span>
+                </button>
+              </div>
             </div>
           )}
           <div className="editor-layout">
@@ -712,7 +725,9 @@ export default function App() {
                 <div
                   className="prototype-canvas"
                   style={themeStyle}
-                  data-theme={project.theme.preset}
+                  data-theme={
+                    project.theme.custom ? "custom" : project.theme.preset
+                  }
                 >
                   <div className="prototype-nav">
                     <Editable
@@ -888,9 +903,12 @@ export default function App() {
                           return (
                             <button
                               key={id}
-                              className={`theme-card ${project.theme.preset === id ? "active" : ""}`}
+                              className={`theme-card ${!project.theme.custom && project.theme.preset === id ? "active" : ""}`}
                               aria-label={`${theme.name} theme`}
-                              aria-pressed={project.theme.preset === id}
+                              aria-pressed={
+                                !project.theme.custom &&
+                                project.theme.preset === id
+                              }
                               onClick={() => setTheme(id)}
                             >
                               <div
@@ -915,11 +933,12 @@ export default function App() {
                                   <i style={{ background: theme.soft }} />
                                   <i style={{ background: theme.ink }} />
                                 </div>
-                                {project.theme.preset === id && (
-                                  <b>
-                                    <Check size={10} />
-                                  </b>
-                                )}
+                                {!project.theme.custom &&
+                                  project.theme.preset === id && (
+                                    <b>
+                                      <Check size={10} />
+                                    </b>
+                                  )}
                               </div>
                               <span>{theme.name}</span>
                             </button>
@@ -972,12 +991,22 @@ export default function App() {
                       <span>Applied to all 3 templates</span>
                     </div>
                     <div className="import-style-note">
-                      <span className="coming-label">ON THE HORIZON</span>
+                      <span className="coming-label">FROM YOUR WEBSITE</span>
                       <strong>Your website, your style.</strong>
                       <p>
-                        URL style import is coming later. For now, start with a
-                        curated theme.
+                        {project.theme.custom
+                          ? `Style imported from ${new URL(project.theme.custom.source.url).hostname}. Choose a theme above to start over.`
+                          : "Explore a website’s colors, heading style, and corners. Review before you apply."}
                       </p>
+                      <button
+                        className="button subtle full-width"
+                        onClick={() => setModal("style")}
+                      >
+                        <Link size={13} />
+                        {project.theme.custom
+                          ? "Import another style"
+                          : "Import website style"}
+                      </button>
                     </div>
                   </>
                 ) : (
@@ -1052,6 +1081,29 @@ export default function App() {
         aria-label="Import Formlane project"
         onChange={(event) => void importProject(event.target.files?.[0])}
       />
+      {modal === "style" && (
+        <StyleImport
+          close={() => setModal(null)}
+          apply={(result, brand) => {
+            if (
+              !change((draft) => {
+                draft.theme = {
+                  ...draft.theme,
+                  font: result.font,
+                  radius: result.radius,
+                  custom: { ...result.palette, source: result.source },
+                };
+                if (brand) draft.brand = brand;
+              })
+            )
+              return;
+            setModal(null);
+            setToast(
+              "Website style applied to all three templates. You can undo this change.",
+            );
+          }}
+        />
+      )}
       {toast && (
         <div className="toast" role="status">
           <span>{toast}</span>

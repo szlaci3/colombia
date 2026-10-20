@@ -56,3 +56,51 @@ for (const template of ["webshop", "kanban", "table"]) {
       await expect(page.getByRole("table")).toBeVisible();
   });
 }
+
+test("the deployed style endpoint rejects unsafe targets", async ({
+  request,
+}) => {
+  const method = await request.get("/api/import-style");
+  expect(method.status()).toBe(405);
+  const response = await request.post("/api/import-style", {
+    data: { url: "https://127.0.0.1/latest/meta-data" },
+  });
+  expect(response.status()).toBe(400);
+  expect((await response.json()).error).toMatch(/public website/);
+});
+
+if (process.env.FORMLANE_IMPORT_URL) {
+  test("imports a real website through the hosted function and applies the reviewed style", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page
+      .getByRole("button", { name: "Start from a website", exact: true })
+      .click();
+    await page
+      .getByLabel("Website URL", { exact: true })
+      .fill(process.env.FORMLANE_IMPORT_URL!);
+    await page
+      .getByRole("button", { name: "Explore style", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Apply to all templates" }),
+    ).toBeEnabled({ timeout: 20_000 });
+    await expect(page.locator(".detected-colors")).toContainText(
+      "linked stylesheet",
+    );
+    await page.getByRole("button", { name: "Apply to all templates" }).click();
+    await expect(page.locator(".prototype-canvas")).toHaveAttribute(
+      "data-theme",
+      "custom",
+    );
+    await page
+      .getByRole("navigation", { name: "Templates" })
+      .getByRole("button", { name: "Data table", exact: true })
+      .click();
+    await expect(page.locator(".prototype-canvas")).toHaveAttribute(
+      "data-theme",
+      "custom",
+    );
+  });
+}
