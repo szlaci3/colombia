@@ -214,15 +214,22 @@ export function Art({
             filter={`url(#${id}-blur)`}
           />
           <g fill={`url(#${id}-wood)`}>
-            <path d="M125 94q92-27 181 0v24q-96-19-181 5z" />
-            <path d="M124 101h12l13 215-14 14zM294 100h13l-7 229-14-5z" />
-            <path d="M136 209l143-15 35 34-163 22z" />
-            <path d="M151 241h14l-8 94h-14zM294 232h13l14 93h-13z" />
-            <path d="M143 171h151v12H144z" />
+            <rect x="125" y="100" width="13" height="230" />
+            <rect x="294" y="100" width="13" height="230" />
+            <rect x="125" y="84" width="182" height="28" />
+            <rect x="138" y="171" width="156" height="12" />
+            {/* Level cross edges retain the original seat-side slopes. */}
+            <path d={`M136 200H279L${279 + (35 * 41) / 34} 241H151Z`} />
+            <rect x="151" y="241" width={128 + (35 * 41) / 34} height="9" />
+            <rect x="151" y="250" width="14" height="85" />
+            <rect x="307" y="250" width="14" height="85" />
           </g>
-          <path d="M145 208l136-14 28 31-153 19z" fill="#c5b79b" />
           <path
-            d="M161 224l121-15M174 238l122-15M154 214l130-14"
+            d={`M145 204H281L${281 + (28 * 36) / 31} 240H156Z`}
+            fill="#c5b79b"
+          />
+          <path
+            d="M153 212H284M156 220H291M159 228H298M162 236H305"
             stroke="#b3a486"
             strokeWidth="2"
           />
