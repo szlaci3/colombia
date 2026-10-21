@@ -29,7 +29,11 @@ export function Assistant({
   const selected = project.pages[page].some((block) => block.id === selectedId)
     ? selectedId
     : null;
-  const [scope, setScope] = useState(selected ? "selected" : "page");
+  const [scope, setScope] = useState(selected ? `section:${selected}` : "page");
+  const scopedSection = project.pages[page].find(
+    (block) => scope === `section:${block.id}`,
+  );
+  const scopedSectionId = scopedSection?.id ?? null;
   const [prompt, setPrompt] = useState("");
   const [availability, setAvailability] = useState<
     "checking" | "ready" | "disabled" | "error"
@@ -43,9 +47,8 @@ export function Assistant({
   const reviewHeading = useRef<HTMLHeadingElement>(null);
   const errorMessage = useRef<HTMLParagraphElement>(null);
   const context = useMemo(
-    () =>
-      assistantContext(project, page, scope === "selected" ? selected : null),
-    [project, page, scope, selected],
+    () => assistantContext(project, page, scopedSectionId),
+    [project, page, scopedSectionId],
   );
   useEffect(() => {
     const controller = new AbortController();
@@ -199,14 +202,24 @@ export function Assistant({
         <label htmlFor="assistant-scope">Share with the assistant</label>
         <select
           id="assistant-scope"
-          value={scope}
+          value={scopedSection ? scope : "page"}
           onChange={(event) => {
             discard();
             setScope(event.target.value);
           }}
         >
           <option value="page">Current template · {title}</option>
-          {selected && <option value="selected">Selected section only</option>}
+          <optgroup label="Individual sections">
+            {project.pages[page].map((block, index) => (
+              <option key={block.id} value={`section:${block.id}`}>
+                Section {index + 1} ·{" "}
+                {block.type === "quote"
+                  ? "Testimonial"
+                  : block.title.replace(/\s+/g, " ").trim() ||
+                    "Untitled section"}
+              </option>
+            ))}
+          </optgroup>
         </select>
         <p className="dialog-fineprint">
           Generating a proposal sends your prompt, {context.blocks.length}{" "}

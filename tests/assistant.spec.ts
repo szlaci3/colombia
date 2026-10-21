@@ -155,6 +155,68 @@ test("keeps unavailable AI honest and runs a labeled example locally without pos
   );
 });
 
+test("chooses any Kanban section inside the dialog and discards reviews when its scope changes", async ({
+  page,
+}) => {
+  const requests: AssistantRequest[] = [];
+  await mock(page, (input) => {
+    requests.push(input);
+    return {
+      summary: "A clearer section heading.",
+      operations: [
+        {
+          type: "edit_text",
+          blockId: input.context.blocks[0].id,
+          field: "title",
+          value: "Ready for review",
+        },
+      ],
+    };
+  });
+  await page.goto("/?template=kanban");
+  const ids = await page
+    .locator("[data-block-id]")
+    .evaluateAll((blocks) =>
+      blocks.map((block) => block.getAttribute("data-block-id")),
+    );
+  await open(page);
+  const scope = page.getByLabel("Share with the assistant", { exact: true });
+  await expect(scope).toHaveValue("page");
+  await expect(scope.locator("option")).toHaveCount(3);
+  await expect(scope.locator("option").nth(1)).toContainText("Section 1");
+  await expect(scope.locator("option").nth(2)).toHaveText(
+    "Section 2 · A little more to the story",
+  );
+  await page
+    .getByLabel("What would you like to explore?")
+    .fill("Make the heading clearer");
+  const generate = page.getByRole("button", {
+    name: "Generate proposal",
+    exact: true,
+  });
+  await generate.click();
+  await expect(
+    page.getByRole("heading", { name: "Review the proposal", exact: true }),
+  ).toBeVisible();
+  expect(requests[0].context.blocks.map((block) => block.id)).toEqual(ids);
+  await scope.selectOption(`section:${ids[1]}`);
+  await expect(page.getByRole("button", { name: /^Apply/ })).toHaveCount(0);
+  await generate.click();
+  await expect(
+    page.getByRole("heading", { name: "Review the proposal", exact: true }),
+  ).toBeVisible();
+  expect(requests[1].context.blocks).toHaveLength(1);
+  expect(requests[1].context.blocks[0].id).toBe(ids[1]);
+  expect(requests[1].context.blocks[0].type).toBe("text");
+  await scope.selectOption("page");
+  await expect(page.getByRole("button", { name: /^Apply/ })).toHaveCount(0);
+  await generate.click();
+  await expect(
+    page.getByRole("heading", { name: "Review the proposal", exact: true }),
+  ).toBeVisible();
+  expect(requests[2].context.blocks.map((block) => block.id)).toEqual(ids);
+});
+
 test("sends only the selected section and can edit real table cells through the reviewed operation contract", async ({
   page,
 }) => {
@@ -182,10 +244,14 @@ test("sends only the selected section and can edit real table cells through the 
     };
   });
   await page.goto("/?template=table");
+  const selectedId = await page
+    .locator('[data-block-type="table"]')
+    .first()
+    .getAttribute("data-block-id");
   await page.getByRole("textbox", { name: "Table title", exact: true }).click();
   await open(page);
   await expect(page.getByLabel("Share with the assistant")).toHaveValue(
-    "selected",
+    `section:${selectedId}`,
   );
   await page
     .getByLabel("What would you like to explore?")
@@ -320,6 +386,12 @@ test("invalidates a reviewed proposal when the project changes externally", asyn
   }));
   await page.goto("/");
   await open(page);
+  const scope = page.getByLabel("Share with the assistant", { exact: true });
+  const sectionValue = await scope
+    .locator("option")
+    .nth(1)
+    .getAttribute("value");
+  await scope.selectOption(sectionValue!);
   await page
     .getByLabel("What would you like to explore?")
     .fill("Change the brand");
@@ -336,6 +408,7 @@ test("invalidates a reviewed proposal when the project changes externally", asyn
     location.hash = hash;
   }, shared.hash);
   await expect(page.getByRole("alert")).toContainText("Your project changed");
+  await expect(scope).toHaveValue("page");
   await expect(page.getByRole("button", { name: /^Apply/ })).toHaveCount(0);
   await page.getByRole("button", { name: "Close dialog" }).click();
   await expect(page.getByLabel("Brand name", { exact: true })).toHaveValue(
