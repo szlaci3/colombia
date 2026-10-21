@@ -224,7 +224,7 @@ export function Assistant({
           rows={4}
           maxLength={2000}
           value={prompt}
-          placeholder="Make the opening warmer and add a short note for our team review."
+          placeholder="Translate the text to Dutch."
           onChange={(event) => {
             discard();
             setPrompt(event.target.value);
