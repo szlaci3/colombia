@@ -3,6 +3,7 @@ import type { Plugin, PreviewServer, ViteDevServer } from "vite";
 import handler from "../netlify/functions/import-style.mts";
 import contentHandler from "../netlify/functions/import-content.mts";
 import assistantHandler from "../netlify/functions/assistant.mts";
+import voiceHandler from "../netlify/functions/voice-token.mts";
 
 export function websiteApi(): Plugin {
   function configure(server: ViteDevServer | PreviewServer) {
@@ -15,14 +16,21 @@ export function websiteApi(): Plugin {
             ? contentHandler
             : path === "/api/assistant"
               ? assistantHandler
-              : null;
+              : path === "/api/voice-token"
+                ? voiceHandler
+                : null;
       if (!route) return next();
       try {
         const init: RequestInit & { duplex?: "half" } = {
           method: req.method,
           headers: new Headers(req.headers as Record<string, string>),
         };
-        if (req.method !== "GET" && req.method !== "HEAD") {
+        if (
+          req.method !== "GET" &&
+          req.method !== "HEAD" &&
+          (req.headers["transfer-encoding"] ||
+            Number(req.headers["content-length"]) > 0)
+        ) {
           init.body = Readable.toWeb(req) as ReadableStream<Uint8Array>;
           init.duplex = "half";
         }

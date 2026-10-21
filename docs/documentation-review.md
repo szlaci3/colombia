@@ -50,4 +50,6 @@ Only item 1 is implementation scope for this change. No chatbot instructions hav
 
 ## Maintenance
 
+Subsequent update, 2026-10-21: the guide now describes the local native voice Dialog added after this original documentation review. [Dialog implementation notes](dialog.md) record its source boundaries, Google references, setup, controlled test results, and separate successful real Gemini 3.8 browser check. Documentation context/retrieval and application tools remain deferred. This update does not constitute owner approval of the product guide.
+
 Keep stable product facts and workflows in `formlane-guide.md`; keep deployment diagnostics, evidence, and planning in supporting documents. After behavior changes, update the guide and corresponding source-map entry together and repeat owner review where the meaning changes. Record the inspected code revision and distinguish source inspection, automated execution, browser checks, and hosted verification.

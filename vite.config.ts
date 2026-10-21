@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
     "GEMINI_API_KEY",
     "FORMLANE_ASSISTANT_ENABLED",
     "FORMLANE_ASSISTANT_MODEL",
+    "FORMLANE_VOICE_ENABLED",
   ])
     if (process.env[key] === undefined && environment[key] !== undefined)
       process.env[key] = environment[key];

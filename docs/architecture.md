@@ -1,5 +1,9 @@
 # Formlane architecture
 
+## Native voice Dialog
+
+The separate [native Dialog](dialog.md) uses `gemini-3.8-live` audio-to-audio over a browser-to-Google WebSocket. A same-origin server function issues a short-lived single-use token with the complete setup locked; the permanent key stays server-side. AudioWorklet capture, PCM encoding/playback, binary protocol handling, interruption, and transcript grouping live in the `src/voice*` modules. App retains chronological transcript messages in memory when the dialog closes; they never enter project storage or exports. This first version has no document context/retrieval or application tools, and does not replace the reviewed proposal assistant. Talker's working Dialog was inspected read-only as a reference.
+
 ## State and rendering
 
 React and TypeScript render a single versioned JSON project. `src/model.ts` defines six discriminated block types and six independently editable page arrays: webshop, Kanban, data table, blog, social feed, and dashboard. All pages reference the same project-level brand/theme. `src/components/Blocks.tsx` renders the same data in editing and presentation modes, so preview does not have a second implementation to drift out of sync.

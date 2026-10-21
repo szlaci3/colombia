@@ -39,6 +39,7 @@ import {
   Leaf,
   Link,
   Menu,
+  AudioLines,
   Monitor,
   MousePointer2,
   PanelTop,
@@ -62,6 +63,8 @@ import { Projects } from "./components/Projects";
 import { PdfPreview } from "./components/PdfPreview";
 import { Assistant } from "./components/Assistant";
 import { IntroductionVideo } from "./components/IntroductionVideo";
+import { VoiceChat } from "./components/VoiceChat";
+import type { VoiceMessage } from "./voice-protocol";
 import { useNavigationDrawer } from "./use-navigation-drawer";
 import { applyReviewedProposal } from "./assistant";
 import {
@@ -220,6 +223,7 @@ export default function App() {
     | "style"
     | "projects"
     | "assistant"
+    | "voice"
     | null
   >(() =>
     new URLSearchParams(location.search).get("intro") === "video"
@@ -227,6 +231,7 @@ export default function App() {
       : null,
   );
   const [toast, setToast] = useState("");
+  const [voiceMessages, setVoiceMessages] = useState<VoiceMessage[]>([]);
   const [notice, setNotice] = useState(initial.notice ?? "");
   const [autoSave, setAutoSave] = useState(
     !initial.shared && !initial.recovered,
@@ -838,6 +843,12 @@ export default function App() {
               <div className="workspace-heading-actions">
                 <button
                   className="button subtle"
+                  onClick={() => setModal("voice")}
+                >
+                  <AudioLines size={14} /> Dialog
+                </button>
+                <button
+                  className="button subtle"
                   onClick={() => setModal("assistant")}
                 >
                   <Sparkles size={14} />
@@ -1300,6 +1311,21 @@ export default function App() {
             setModal(null);
             setToast("Proposal applied. Undo brings back your previous draft.");
           }}
+        />
+      )}
+      {modal === "voice" && (
+        <VoiceChat
+          messages={voiceMessages}
+          onMessage={(message) =>
+            setVoiceMessages((previous) => {
+              const index = previous.findIndex(
+                (item) => item.id === message.id,
+              );
+              if (index < 0) return [...previous, message];
+              return previous.map((item, i) => (i === index ? message : item));
+            })
+          }
+          close={() => setModal(null)}
         />
       )}
       {modal === "style" && (

@@ -5,6 +5,7 @@ import "./styles.css";
 import "./templates.css";
 import "./meetings.css";
 import "./assistant.css";
+import "./voice.css";
 
 class ErrorBoundary extends React.Component<
   React.PropsWithChildren,

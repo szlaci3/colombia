@@ -1,6 +1,6 @@
 # Formlane product guide
 
-Draft for owner review. Inspected against application source at `cb4f7ec` on 2026-10-21. This describes that checkout; it does not establish what is currently deployed. The [documentation review](documentation-review.md) maps these claims to code.
+Draft for owner review. Initially inspected against application source at `cb4f7ec` on 2026-10-21; updated for the subsequent native Dialog implementation. This describes the local source; it does not establish what is currently deployed. The [documentation review](documentation-review.md) maps the original claims to code; [Dialog notes](dialog.md) cover the new voice implementation and verification boundaries.
 
 ## What Formlane does
 
@@ -8,7 +8,7 @@ Formlane is a browser-based visual prototyping workspace for exploring ideas in 
 
 These are visual prototypes. Product prices, tasks, people, posts, and dashboard figures are editable example content. Payments, email delivery, customer databases, live analytics, and production task workflows are not connected. Formlane does not publish the prototype as a working website or export application code.
 
-There are no application accounts, server-side project storage, or real-time collaboration. Work stays in this browser unless you export it, share a snapshot, import a public webpage, or request an AI proposal. The existing AI helper proposes editor changes for review. A conversational voice chatbot is planned and is not present in this checkout.
+There are no application accounts, server-side project storage, or real-time collaboration. Work stays in this browser unless you export it, share a snapshot, import a public webpage, request an AI proposal, or start Dialog. The existing AI helper proposes editor changes for review. The separate native voice Dialog sends microphone audio to Gemini and displays both speakers' transcripts.
 
 ## Find your way around
 
@@ -142,8 +142,10 @@ If an add button is disabled, check the relevant capacity and whether a required
 
 Public website imports can fail on login-only, private-network, blocked, oversized, script-dependent, or slow pages. Try a smaller public HTTPS page or paste Markdown. Deployed rate-limit configuration allows 10 imports per minute per IP/domain per import endpoint and six assistant requests per minute, including availability checks. Wait a minute after a rate-limit response. Local development does not emulate these platform limits.
 
-## Planned chatbot boundary
+## Talk with native voice Dialog
 
-The requested next stage is a conversational Formlane helper with audio-to-audio interaction, user and AI transcripts, and possible typed input. The requested model is `gemini-3.8-live`; its exact identifier and capabilities still need verification during implementation. None of that voice/transcript functionality exists in this checkout.
+Choose **Dialog** → **Start Dialog**, allow microphone access, speak, and pause for Gemini to reply aloud automatically. This is one continuous native audio-to-audio session using `gemini-3.8-live`. Both speakers' messages stay in chronological order, newest at the bottom; transcripts may arrive before or after the corresponding audio. Speak again to interrupt a reply. Already displayed content stays visible, with interrupted answers labeled.
 
-After owner review, this guide is the candidate product knowledge for the chatbot. A documentation-backed first version should explain workflows and limits; it must not claim to see the current screen or to have changed a project without an explicitly implemented capability and successful result. Current AI proposals remain a separate review-and-apply workflow. Application tools for the conversational chatbot are a later milestone. Retrieval is not implemented; whether the approved guide fits directly in system context should be evaluated before adding RAG.
+**End Dialog**, Escape, or closing stops audio and releases the microphone. Reopening keeps the transcript until reload; starting again opens a fresh provider conversation and does not replay the previous transcript. Dialog is independently enabled by the server owner; disabled or unavailable connections show a status/error. It requires HTTPS or localhost and browser microphone/AudioWorklet support. See [Dialog setup and limits](dialog.md).
+
+The first Dialog has no documentation context/retrieval, screen/project access, typed input, or application tools. It should not claim to see or change the project. The **Explore with AI** proposal workflow remains separate. After review, this guide can supply product knowledge in a later stage. Evaluate direct context inclusion before adding RAG.
