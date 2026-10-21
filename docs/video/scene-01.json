@@ -1,0 +1,27 @@
+{
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "duration": 8,
+  "captions": [
+    {
+      "start": 0,
+      "end": 4,
+      "lines": ["Choose a theme.", "It defines colors and shapes."]
+    },
+    {
+      "start": 4,
+      "end": 8,
+      "lines": [
+        "Choose a template:",
+        "Webshop, blog, dashboard or something else."
+      ]
+    }
+  ],
+  "actions": [
+    { "time": 1.4, "target": "theme", "state": "tide-webshop" },
+    { "time": 4.5, "target": "webshop", "state": "tide-webshop" },
+    { "time": 5.5, "target": "blog", "state": "tide-blog" },
+    { "time": 6.7, "target": "dashboard", "state": "tide-dashboard" }
+  ]
+}
