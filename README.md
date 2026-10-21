@@ -6,6 +6,8 @@ Formlane is a browser-based visual prototyping playground for the “what if?”
 
 Colombia is the repository name; the application is called Formlane.
 
+**Product documentation:** [Formlane product guide](docs/formlane-guide.md), generated from the application source and awaiting owner review. [Review evidence and checklist](docs/documentation-review.md) track accuracy review and the planned conversational chatbot milestones.
+
 **Deployed URL:** [formlane.netlify.app](https://formlane.netlify.app)
 
 ![Formlane studio with the webshop prototype and shared brand settings](docs/formlane.png)
@@ -133,6 +135,6 @@ The local Markdown adapter accepts up to 100,000 characters. Marked tokenizes st
 
 Both importers use the same fetcher: public HTTPS hostnames on the standard port, no private/reserved DNS addresses, the vetted address pinned to the TLS request, and revalidation on every redirect. Imports have a 12-second deadline, three-redirect limit, 600 KB HTML/250 KB-per-stylesheet limits, and a Netlify rate limit of 10 requests per minute per IP/domain for each endpoint. Content import fetches only the page, not its stylesheets. Source scripts are never executed, and arbitrary CSS is never injected into the editor.
 
-A recorded explainer video, accounts, real-time collaboration, free-positioned layouts, and production website/code generation remain deferred. The assistant is a bounded, request-and-review editor helper rather than an autonomous agent: it has no browsing, tool execution, cross-project access, or persistent chat memory. These website imports run on demand; they are not a Chrome extension or a full browser capture.
+Accounts, real-time collaboration, free-positioned layouts, and production website/code generation remain deferred. The recorded introduction video is available through “How it works”. The existing assistant is a bounded, request-and-review editor helper rather than an autonomous agent: it has no browsing, tool execution, cross-project access, or persistent chat memory. A conversational voice chatbot is planned separately; see the [documentation review and next milestones](docs/documentation-review.md). These website imports run on demand; they are not a Chrome extension or a full browser capture.
 
 See [the architecture notes](docs/architecture.md) for extension points and tradeoffs, and [the release roadmap](docs/roadmap.md) for the remaining milestones.

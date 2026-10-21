@@ -2,6 +2,19 @@
 
 The finish line is a portfolio-ready release. Each milestone includes automated checks, a checked commit and push, and verification on [Netlify](https://formlane.netlify.app).
 
+## Conversational chatbot milestones
+
+Requested 2026-10-21. These extend the existing reviewed AI editor helper; milestone 4 below records that earlier helper, not completion of a conversational chatbot.
+
+1. [ ] **Document the actual application:** inspect the source, produce the [product guide](formlane-guide.md), and obtain owner review for accuracy. **Draft ready; owner review pending.** See the [source map and review checklist](documentation-review.md).
+2. [ ] **Add a documentation-backed voice chatbot:** Formlane instructions and approved documentation, requested `gemini-3.8-live` audio-to-audio interaction, and visible user/AI transcripts. Verify the exact supported model and session capabilities during implementation. Typed input remains a possible addition.
+3. [ ] **Add retrieval only if needed:** evaluate the approved guide directly in system context first; introduce RAG only when size, relevance, maintenance, or measured quality warrants it.
+4. [ ] **Add application tools later:** allow the conversational chatbot to perform Formlane operations through explicit application integrations.
+
+The current change covers documentation only. Voice, transcripts, retrieval, and conversational application tools are not implemented.
+
+## Portfolio release milestones
+
 1. [x] **Improve content import:** local pasted Markdown, search/type filters, full previews, and capacity-aware selection. Website imports and original Markdown exports remain available.
 2. [x] **Expand templates:** blog, social feed, and dashboard with the shared brand and existing editor blocks. Article, post, and metric layouts stay editable and portable; earlier v1 projects gain the new starter pages.
 3. [x] **Strengthen meeting workflows:** a device-local named project library, durable named versions with undoable restoration, and current/all-template print-to-PDF handouts. Existing saves migrate; shared snapshots get separate project slots.
