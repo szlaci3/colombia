@@ -3,6 +3,8 @@
   "height": 1080,
   "fps": 30,
   "duration": 8,
+  "clickFeedbackSeconds": 0.5,
+  "playback": [{ "start": 0, "end": 8, "rate": 0.75 }],
   "captions": [
     {
       "start": 0,

@@ -3,6 +3,11 @@
   "height": 1080,
   "fps": 30,
   "duration": 40,
+  "clickFeedbackSeconds": 0.5,
+  "playback": [
+    { "start": 0, "end": 12, "rate": 0.75 },
+    { "start": 12, "end": 40, "rate": 0.5 }
+  ],
   "initialState": "overview",
   "captions": [
     {
@@ -67,7 +72,15 @@
     { "time": 10.7, "target": "dashboard", "state": "tide-dashboard" },
     { "time": 12, "state": "edit-ready" },
     { "time": 12.9, "target": "headline", "state": "headline-active" },
-    { "time": 13.7, "state": "headline-edited" },
+    { "time": 13.45, "state": "headline-cleared" },
+    { "time": 13.65, "state": "headline-type-1" },
+    { "time": 13.8, "state": "headline-type-2" },
+    { "time": 13.95, "state": "headline-type-3" },
+    { "time": 14.1, "state": "headline-type-4" },
+    { "time": 14.25, "state": "headline-type-5" },
+    { "time": 14.4, "state": "headline-type-6" },
+    { "time": 14.55, "state": "headline-type-7" },
+    { "time": 14.85, "state": "headline-edited" },
     { "time": 16, "state": "content-ready" },
     { "time": 16.5, "target": "import", "state": "import-dialog" },
     { "time": 16.9, "target": "page-content", "state": "content-dialog" },

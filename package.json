@@ -15,6 +15,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:deployment": "playwright test tests/deployment.spec.ts",
+    "test:video": "node --test scripts/video-timeline.test.mjs",
     "video:scene": "npm run build && node scripts/render-intro-scene.mjs",
     "video:intro": "npm run build && node scripts/render-intro-scene.mjs --full",
     "check": "npm run test && npm run test:e2e",

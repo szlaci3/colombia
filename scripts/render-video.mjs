@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { chromium, expect } from "@playwright/test";
 import { preview } from "vite";
+import { compileTimeline, stateAtFrame } from "./video-timeline.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const full = process.argv.includes("--full");
@@ -15,14 +16,12 @@ const out = path.join(
   "docs/video/rendered",
   full ? "introduction" : "scene",
 );
-const scene = JSON.parse(
+let scene = JSON.parse(
   await readFile(
     path.join(root, `docs/video/${full ? "introduction" : "scene-01"}.json`),
   ),
 );
 scene.initialState ??= "grove-webshop";
-const frames = scene.fps * scene.duration;
-assert.equal(frames, full ? 1200 : 240);
 assert.equal(scene.captions[0].start, 0);
 assert.equal(scene.captions.at(-1).end, scene.duration);
 scene.captions.forEach((caption, index) => {
@@ -64,11 +63,13 @@ try {
     boxes = {},
     errors = [],
     assistantRequests = [],
+    capturedClicks = [],
     usedExample = false;
   if (process.argv.includes("--reuse-captures")) {
     const cached = JSON.parse(await readFile(path.join(out, "captures.json")));
     assert.equal(cached.source, base);
     ({ snapshots, boxes, errors, assistantRequests, usedExample } = cached);
+    capturedClicks = cached.capturedClicks ?? [];
     console.log(
       "Reusing previously captured real UI states; no new AI request",
     );
@@ -110,7 +111,7 @@ try {
     async function shot(key, scroll = 208) {
       await settle(scroll);
       snapshots[key] = (
-        await page.screenshot({ animations: "disabled" })
+        await page.screenshot({ animations: "disabled", caret: "initial" })
       ).toString("base64");
       await writeFile(
         path.join(out, `capture-${key}.png`),
@@ -130,6 +131,52 @@ try {
       );
       boxes[key] = box;
     }
+    async function demonstrateClick(locator) {
+      const box = await locator.boundingBox();
+      assert(box, "A demonstrated click needs a visible control");
+      const feedback = await page.evaluate(
+        async ({ x, y, duration }) => {
+          const ring = document.createElement("span");
+          Object.assign(ring.style, {
+            position: "fixed",
+            left: `${x - 12}px`,
+            top: `${y - 12}px`,
+            width: "24px",
+            height: "24px",
+            border: "3px solid #b37a18",
+            borderRadius: "50%",
+            pointerEvents: "none",
+            zIndex: "2147483647",
+          });
+          (document.querySelector("dialog[open]") ?? document.body).append(
+            ring,
+          );
+          const started = performance.now();
+          await ring.animate(
+            [
+              { transform: "scale(1)", opacity: 1 },
+              { transform: "scale(2.5)", opacity: 0 },
+            ],
+            { duration, easing: "linear" },
+          ).finished;
+          const finished = performance.now();
+          ring.remove();
+          return { started, finished };
+        },
+        {
+          x: box.x + box.width / 2,
+          y: box.y + box.height / 2,
+          duration: scene.clickFeedbackSeconds * 1000,
+        },
+      );
+      const dispatchReady = await page.evaluate(() => performance.now());
+      assert(dispatchReady >= feedback.finished);
+      await locator.click();
+      capturedClicks.push({
+        feedbackMilliseconds: feedback.finished - feedback.started,
+        completedBeforeDispatch: dispatchReady >= feedback.finished,
+      });
+    }
     await expect(canvas).toHaveAttribute("data-theme", "grove");
     await shot("overview", 0);
     await shot("grove-webshop");
@@ -143,18 +190,26 @@ try {
       ["dashboard", "Dashboard"],
     ])
       await target(key, nav.getByRole("button", { name: title, exact: true }));
-    await page.getByRole("button", { name: "Tide theme", exact: true }).click();
+    await demonstrateClick(
+      page.getByRole("button", { name: "Tide theme", exact: true }),
+    );
     await expect(canvas).toHaveAttribute("data-theme", "tide");
     await expect(page.getByLabel("Corners", { exact: false })).toHaveValue(
       "18",
     );
     await shot("tide-webshop");
-    await nav.getByRole("button", { name: "Webshop", exact: true }).click();
-    await nav.getByRole("button", { name: "Blog", exact: true }).click();
+    await demonstrateClick(
+      nav.getByRole("button", { name: "Webshop", exact: true }),
+    );
+    await demonstrateClick(
+      nav.getByRole("button", { name: "Blog", exact: true }),
+    );
     await expect(canvas).toHaveAttribute("data-template", "blog");
     await expect(canvas).toHaveAttribute("data-theme", "tide");
     await shot("tide-blog");
-    await nav.getByRole("button", { name: "Dashboard", exact: true }).click();
+    await demonstrateClick(
+      nav.getByRole("button", { name: "Dashboard", exact: true }),
+    );
     await expect(canvas).toHaveAttribute("data-template", "dashboard");
     await expect(canvas).toHaveAttribute("data-theme", "tide");
     await shot("tide-dashboard");
@@ -170,9 +225,17 @@ try {
         exact: true,
       });
       await target("headline", headline);
-      await headline.click();
+      await demonstrateClick(headline);
       await shot("headline-active");
-      await headline.fill("Thoughtful pieces for everyday living.");
+      await headline.fill("");
+      await shot("headline-cleared");
+      const prefix = "Thought";
+      for (let index = 0; index < prefix.length; index++) {
+        await headline.pressSequentially(prefix[index]);
+        await expect(headline).toHaveText(prefix.slice(0, index + 1));
+        await shot(`headline-type-${index + 1}`);
+      }
+      await headline.pressSequentially("ful pieces for everyday living.");
       await headline.press("Tab");
       await expect(headline).toHaveText(
         "Thoughtful pieces for everyday living.",
@@ -184,27 +247,28 @@ try {
         exact: true,
       });
       await target("import", importer);
-      await importer.click();
+      await demonstrateClick(importer);
       await shot("import-dialog", null);
       const content = page.getByRole("button", {
         name: "Page content",
         exact: true,
       });
       await target("page-content", content);
-      await content.click();
+      await demonstrateClick(content);
       await shot("content-dialog", null);
       const paste = page.getByRole("button", {
         name: "Paste Markdown",
         exact: true,
       });
       await target("paste", paste);
-      await paste.click();
+      await demonstrateClick(paste);
       await shot("markdown-dialog", null);
       const notes = page.getByRole("textbox", {
         name: "Your Markdown",
         exact: true,
       });
       await target("notes", notes);
+      await demonstrateClick(notes);
       await notes.fill(
         "# Our next collection\n\nNatural materials. Useful objects. Room for a slower day.\n\n## Next steps\n\n| Idea | Owner |\n| --- | --- |\n| Explore colors | Alex |\n| Review the collection | Sam |",
       );
@@ -214,7 +278,7 @@ try {
         exact: true,
       });
       await target("prepare", prepare);
-      await prepare.click();
+      await demonstrateClick(prepare);
       const add = page.getByRole("button", {
         name: "Add 2 sections to Webshop",
         exact: true,
@@ -223,7 +287,7 @@ try {
       await add.scrollIntoViewIfNeeded();
       await shot("content-review", null);
       await target("add-content", add);
-      await add.click();
+      await demonstrateClick(add);
       await expect(page.getByRole("dialog")).toHaveCount(0);
       const cell = page.getByRole("textbox", {
         name: "Row 1, Owner",
@@ -241,13 +305,14 @@ try {
         exact: true,
       });
       await target("assistant", assistant);
-      await assistant.click();
+      await demonstrateClick(assistant);
       await expect(
         page.getByText("AI suggestions are available.", { exact: true }),
       ).toBeVisible({ timeout: 15000 });
       await shot("assistant-dialog", null);
       const prompt = page.getByLabel("What would you like to explore?");
       await target("prompt", prompt);
+      await demonstrateClick(prompt);
       await prompt.fill(
         "Make the headline clearer. Change only the hero headline to: A calmer home starts here. Leave all other fields unchanged.",
       );
@@ -259,7 +324,7 @@ try {
       const forceExample = process.env.FORMLANE_VIDEO_ASSISTANT === "example";
       if (!forceExample) {
         await target("generate", generate);
-        await generate.click();
+        await demonstrateClick(generate);
         await shot("assistant-generating", null);
       }
       const apply = page.getByRole("button", {
@@ -285,7 +350,7 @@ try {
           exact: true,
         });
         await target("generate", example);
-        await example.click();
+        await demonstrateClick(example);
         await shot("assistant-generating", null);
         applyChoice = page.getByRole("button", {
           name: "Apply 2 changes",
@@ -302,7 +367,7 @@ try {
         );
       await shot("assistant-review", null);
       await target("apply", applyChoice);
-      await applyChoice.click();
+      await demonstrateClick(applyChoice);
       if (!usedExample)
         await expect(headline).toHaveText("A calmer home starts here.");
       else await expect(canvas).toContainText("A direction to explore");
@@ -328,7 +393,7 @@ try {
         exact: true,
       });
       await target("mobile", mobile);
-      await mobile.click();
+      await demonstrateClick(mobile);
       await expect(mobile).toHaveAttribute("aria-pressed", "true");
       await shot("mobile-preview");
       await page
@@ -340,7 +405,7 @@ try {
         exact: true,
       });
       await target("present", present);
-      await present.click();
+      await demonstrateClick(present);
       await expect(
         page.getByRole("button", { name: "Exit presentation", exact: true }),
       ).toBeVisible();
@@ -355,6 +420,7 @@ try {
         boxes,
         errors,
         assistantRequests,
+        capturedClicks,
         usedExample,
       }),
     );
@@ -367,6 +433,9 @@ try {
       "Review the changes, then choose whether to apply them.",
     ];
   }
+  scene = compileTimeline(scene);
+  const frames = scene.frames;
+  assert.equal(frames, full ? 2415 : 380);
   assert.deepEqual(errors, [], "The captured app must have no browser errors");
   for (const action of scene.actions) {
     assert(
@@ -435,24 +504,24 @@ try {
           ctx.fillText("formlane.netlify.app", 960, 550);
         } else {
           ctx.drawImage(images[state], 0, 0, 1920, 1080);
-          // Pointer motion is editorial; the screens and state changes are real.
+          // The callback/state change occurs only after all feedback frames finish.
           const next = scene.actions.find(
             (action) =>
               action.target &&
-              time >= action.time - 0.65 &&
-              time < action.time + 0.4,
+              time >= action.clickStart - 0.65 &&
+              time < action.clickEnd,
           );
           if (next) {
             const box = boxes[next.target],
               target = center(box);
             const amount = ease(
-              Math.max(0, Math.min(1, (time - next.time + 0.65) / 0.65)),
+              Math.max(0, Math.min(1, (time - next.clickStart + 0.65) / 0.65)),
             );
             const pointer = {
               x: target.x + 130 * (1 - amount),
               y: target.y + 75 * (1 - amount),
             };
-            if (time < next.time) {
+            if (time < next.clickStart) {
               ctx.strokeStyle = "#b37a18";
               ctx.lineWidth = 3;
               ctx.beginPath();
@@ -465,8 +534,8 @@ try {
               );
               ctx.stroke();
             } else {
-              const age = time - next.time;
-              ctx.strokeStyle = `rgba(179,122,24,${1 - age / 0.4})`;
+              const age = time - next.clickStart;
+              ctx.strokeStyle = `rgba(179,122,24,${1 - age / (next.clickEnd - next.clickStart)})`;
               ctx.lineWidth = 4;
               ctx.beginPath();
               ctx.arc(target.x, target.y, 12 + age * 45, 0, Math.PI * 2);
@@ -508,10 +577,21 @@ try {
           ctx.fillStyle = "#ffffff";
           ctx.fillText(text, 960, y + 39);
         });
+        return { state, effect: nextEffect(scene, time) };
       };
+      function nextEffect(timeline, time) {
+        return (
+          timeline.actions.find(
+            (action) =>
+              action.target &&
+              time >= action.clickStart &&
+              time < action.clickEnd,
+          )?.target ?? null
+        );
+      }
       return subtitleLayout;
     },
-    { snapshots, boxes, scene },
+    { snapshots, boxes, scene: JSON.parse(JSON.stringify(scene)) },
   );
   for (const caption of subtitleLayout)
     for (const line of caption.lines)
@@ -519,7 +599,8 @@ try {
   // Keep the clicked control's center clear of the subtitle overlay.
   for (const action of scene.actions.filter((entry) => entry.target)) {
     const caption = subtitleLayout.find(
-      (entry) => action.time >= entry.start && action.time < entry.end,
+      (entry) =>
+        action.clickStart >= entry.start && action.clickStart < entry.end,
     );
     const box = boxes[action.target];
     const x = (box.x + box.width / 2) * 1.2,
@@ -583,14 +664,42 @@ try {
     );
   });
   encoder.stdin.on("error", () => {});
-  const sampleFrames = new Set(
+  const narrativeFrames = new Set(
     scene.captions.flatMap(({ start, end }) => [
       Math.round(start * scene.fps),
       Math.round(((start + end) / 2) * scene.fps),
     ]),
   );
+  const sampleFrames = new Set([
+    ...narrativeFrames,
+    ...scene.actions
+      .filter((action) => action.target)
+      .flatMap((action) => [
+        action.clickStartFrame,
+        action.clickEndFrame - 1,
+        action.clickEndFrame,
+      ]),
+    ...scene.actions
+      .filter((action) => action.state.startsWith("headline-"))
+      .map((action) => action.frame),
+  ]);
   for (let index = 0; index < frames; index++) {
-    await stage.evaluate((time) => window.drawFrame(time), index / scene.fps);
+    const drawn = await stage.evaluate(
+      (time) => window.drawFrame(time),
+      index / scene.fps,
+    );
+    assert.equal(
+      drawn.state,
+      stateAtFrame(scene, index),
+      `Unexpected visible state in frame ${index}`,
+    );
+    const activeClick = scene.actions.find(
+      (action) =>
+        action.target &&
+        index >= action.clickStartFrame &&
+        index < action.clickEndFrame,
+    );
+    assert.equal(drawn.effect, activeClick?.target ?? null);
     const png = await stage.screenshot();
     if (sampleFrames.has(index))
       await writeFile(
@@ -610,11 +719,15 @@ try {
     { encoding: "utf8", windowsHide: true },
   );
   assert.equal(inspection.status, 0, inspection.stderr);
-  assert(
-    inspection.stderr.includes(
-      `Duration: 00:00:${String(scene.duration).padStart(2, "0")}.00`,
-    ),
+  const durationMatch = inspection.stderr.match(
+    /Duration: (\d+):(\d+):([\d.]+)/,
   );
+  assert(durationMatch, "Missing encoded duration");
+  const decodedDuration =
+    Number(durationMatch[1]) * 3600 +
+    Number(durationMatch[2]) * 60 +
+    Number(durationMatch[3]);
+  assert(Math.abs(decodedDuration - scene.duration) < 0.011);
   assert.match(inspection.stderr, /1920x1080/);
   assert.match(inspection.stderr, /30 fps/);
   assert.match(inspection.stderr, new RegExp(`frame=\\s*${frames}\\b`));
@@ -638,7 +751,7 @@ try {
       };
     });
   assert.equal(playback.error, null);
-  assert.equal(playback.duration, scene.duration);
+  assert(Math.abs(playback.duration - scene.duration) < 0.00001);
   assert.equal(playback.width, scene.width);
   assert.equal(playback.height, scene.height);
   assert(playback.currentTime > 0 && playback.decodedFrames > 0);
@@ -649,12 +762,26 @@ try {
     height: scene.height,
     fps: scene.fps,
     duration: scene.duration,
+    sourceDuration: scene.sourceDuration,
+    playbackRates: scene.playback,
+    clickFeedbackSeconds: scene.clickFeedbackSeconds,
     frames,
     captions: scene.captions,
     subtitleLayout,
     actions: scene.actions,
     browserErrors: errors,
     assistantRequests,
+    capturedClicks,
+    clickTransitions: scene.actions
+      .filter((action) => action.target)
+      .map((action) => ({
+        target: action.target,
+        startFrame: action.clickStartFrame,
+        endFrame: action.clickEndFrame,
+        stateDuringEffect: stateAtFrame(scene, action.clickEndFrame - 1),
+        stateAfterEffect: stateAtFrame(scene, action.clickEndFrame),
+        completedBeforeStateChange: true,
+      })),
     usedExample,
     verification: "All frames decoded successfully; browser playback passed",
     audio: "silent",
@@ -666,12 +793,16 @@ try {
   );
   await writeFile(
     path.join(out, "contact-sheet.html"),
-    `<body style="background:#ddd;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">${[...sampleFrames].map((index) => `<figure style="margin:0"><img style="width:100%" src="${String(index).padStart(4, "0")}.png"><figcaption>${(index / scene.fps).toFixed(2)} seconds</figcaption></figure>`).join("")}</body>`,
+    `<body style="background:#ddd;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">${[...narrativeFrames].map((index) => `<figure style="margin:0"><img style="width:100%" src="${String(index).padStart(4, "0")}.png"><figcaption>${(index / scene.fps).toFixed(2)} seconds</figcaption></figure>`).join("")}</body>`,
   );
   const deliverable = path.join(root, "docs/video", `${name}.mp4`);
   await copyFile(videoPath, deliverable);
   if (full) {
     const excerpt = path.join(root, "docs/video/formlane-theme-template.mp4");
+    const excerptStartFrame = scene.mapSourceFrame(4);
+    const excerptEndFrame = scene.mapSourceFrame(12);
+    const excerptFrames = excerptEndFrame - excerptStartFrame;
+    assert.equal(excerptFrames, 380);
     const extraction = spawnSync(
       ffmpeg,
       [
@@ -679,12 +810,12 @@ try {
         "-hide_banner",
         "-loglevel",
         "error",
-        "-ss",
-        "4",
         "-i",
         videoPath,
-        "-t",
-        "8",
+        "-vf",
+        `trim=start_frame=${excerptStartFrame}:end_frame=${excerptEndFrame},setpts=PTS-STARTPTS`,
+        "-frames:v",
+        String(excerptFrames),
         "-an",
         "-c:v",
         "libx264",
@@ -705,9 +836,11 @@ try {
       { encoding: "utf8", windowsHide: true },
     );
     assert.equal(excerptCheck.status, 0, excerptCheck.stderr);
-    assert.match(excerptCheck.stderr, /Duration: 00:00:08\.00/);
-    assert.match(excerptCheck.stderr, /frame=\s*240\b/);
-    console.log(`Verified updated eight-second excerpt: ${excerpt}`);
+    assert.match(excerptCheck.stderr, /Duration: 00:00:12\.67/);
+    assert.match(excerptCheck.stderr, /frame=\s*380\b/);
+    console.log(
+      `Verified updated ${excerptFrames / scene.fps}-second excerpt: ${excerpt}`,
+    );
   }
   console.log(`Verified: ${deliverable}`);
 } finally {
