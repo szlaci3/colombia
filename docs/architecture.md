@@ -26,6 +26,10 @@ The 750 KB limit is checked both before parsing and after adding starter pages. 
 
 Native dialogs provide focus containment and Escape dismissal. Inputs and editing controls have accessible names. Browser tests run axe checks on every template and the introduction dialog. These automated checks supplement keyboard tests; they do not establish complete assistive-technology compatibility.
 
+`useNavigationDrawer` contains keyboard focus in the phone navigation, makes the workspace inert, and locks background scrolling. Closing restores the navigation trigger; resizing to desktop releases the drawer. Tools close the drawer before opening a native dialog. Dialog backdrop dismissal requires both pointer-down and click outside the dialog bounds, preserving work when a drag starts inside. Inline editing and global shortcuts ignore active input-method composition.
+
+`IntroductionVideo` uses native playback controls and metadata preloading. Media errors expose a retry and retain the download link; successful metadata loading clears the error. Opening the introduction never changes project data.
+
 ## Persistence and sharing
 
 `src/storage.ts` owns project-file validation, legacy serialization, and compressed URL snapshots. Zod validates imports and stored data, including duplicate nested IDs, bounds, and table shape. Invalid imports leave the current project intact. Corrupt saved projects open a recoverable unsaved draft and pause autosave. Storage failures stay visible, and file export continues to work.
@@ -37,6 +41,8 @@ Autosave is debounced, with page-hide and visibility-change flushing. Project sw
 Invalid libraries open a protected draft without overwriting the original. Explicit “Save this draft” first writes the exact unreadable library to a separate `formlane.library.recovery.*` key, then initializes a new library; a failed backup leaves the original untouched. Project and version removal are confirmed, and the active project cannot be removed. File/snapshot exports remain single-project v1 documents without library metadata or version history; each checkpoint can be exported separately.
 
 Sharing uses `lz-string` in the URL fragment, with the current template in the query. Fragments are not part of HTTP requests, but anyone receiving the URL receives the project data. There is no server upload, live sync, permission model, link revocation, or guarantee that other applications preserve long links. Opening a shared project pauses autosave until an explicit “Keep this copy”, which adds a new library entry while preserving existing projects. JSON export is the reliable fallback for large projects.
+
+Generated snapshot links remove the introduction query parameter so recipients reach the shared prototype directly.
 
 ## PDF handouts
 
@@ -88,6 +94,6 @@ The endpoint limits input to 65 KB, prompts to 2,000 characters, provider respon
 
 ## Remaining work
 
-The [release roadmap](roadmap.md) records the agreed milestones. The reviewed assistant includes the Interactions/Flash-Lite production-timeout repair; see the README for diagnostic evidence and the opt-in deployment check. The introduction video/guided example follows. Advanced source extraction (rendered-browser styles, conditional rules, full shorthand support, exact fonts/layouts) and a browser extension remain separate future options.
+The [release roadmap](roadmap.md) records the agreed milestones and local hardening verification. The reviewed assistant includes the Interactions/Flash-Lite production-timeout repair; see the README for diagnostic evidence and the opt-in deployment check. The introduction video is available; the separate polished guided example remains pending. Advanced source extraction (rendered-browser styles, conditional rules, full shorthand support, exact fonts/layouts) and a browser extension remain separate future options.
 
 The editor’s production output is `dist/`, hosted at [formlane.netlify.app](https://formlane.netlify.app). Website imports and AI suggestions use the included Netlify functions. The editor and example need no database or provider account; live AI requires server-only configuration. `netlify.toml` declares the build command, output directory, Node version, and function source directory. A static-only host can serve the editor/example, but needs compatible endpoints for URL imports and AI suggestions.

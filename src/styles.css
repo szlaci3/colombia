@@ -344,6 +344,26 @@
   gap: 5px;
   text-decoration: underline;
 }
+.video-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #d4b29e;
+  border-radius: 7px;
+  background: #fff7ef;
+  color: #743b26;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.drawer-close {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+}
 .style-import-form > label {
   display: block;
   font-size: 12px;

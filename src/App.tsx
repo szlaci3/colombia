@@ -61,6 +61,8 @@ import { WebsiteImport } from "./components/WebsiteImport";
 import { Projects } from "./components/Projects";
 import { PdfPreview } from "./components/PdfPreview";
 import { Assistant } from "./components/Assistant";
+import { IntroductionVideo } from "./components/IntroductionVideo";
+import { useNavigationDrawer } from "./use-navigation-drawer";
 import { applyReviewedProposal } from "./assistant";
 import {
   loadWorkspace,
@@ -89,7 +91,6 @@ import {
   type ThemeId,
 } from "./model";
 import { makeShareUrl, MAX_PROJECT_SIZE, parseProject } from "./storage";
-import introductionVideo from "../docs/video/formlane-introduction.mp4?url";
 
 const pages = {
   webshop: {
@@ -235,6 +236,8 @@ export default function App() {
     "saving",
   );
   const [mobileMenu, setMobileMenu] = useState(false);
+  const closeNavigation = useCallback(() => setMobileMenu(false), []);
+  const navigationRef = useNavigationDrawer(mobileMenu, closeNavigation);
   const [shareUrl, setShareUrl] = useState("");
   const activeRef = useRef<ProjectRef>(initial.ref);
   const [projectLibrary, setProjectLibrary] = useState<Library>({
@@ -373,6 +376,7 @@ export default function App() {
   }, [project, autoSave]);
   useEffect(() => {
     function keydown(event: KeyboardEvent) {
+      if (event.isComposing || event.keyCode === 229) return;
       if (pdfOpen) return;
       if (event.key === "Escape" && !modal) {
         setPreview(false);
@@ -586,23 +590,38 @@ export default function App() {
         Skip to workspace
       </a>
       {mobileMenu && (
-        <button
+        <div
           className="sidebar-backdrop"
-          aria-label="Close navigation"
+          aria-hidden="true"
           onClick={() => setMobileMenu(false)}
         />
       )}
       {!preview && (
-        <aside
+        <div
+          ref={navigationRef}
           id="workspace-navigation"
           className="sidebar"
           aria-label="Workspace navigation"
+          role={mobileMenu ? "dialog" : "complementary"}
+          aria-modal={mobileMenu ? true : undefined}
         >
-          <a className="wordmark" href="./" aria-label="Formlane home">
-            <span className="brand-mark">
+          {mobileMenu && (
+            <button
+              className="icon-button drawer-close"
+              aria-label="Close navigation"
+              onClick={closeNavigation}
+            >
+              <X size={18} />
+            </button>
+          )}
+          <a className="wordmark" href="./" title="Formlane home">
+            <span className="brand-mark" aria-hidden="true">
               f<span />
             </span>
-            formlane<span className="wordmark-dot">.</span>
+            formlane
+            <span className="wordmark-dot" aria-hidden="true">
+              .
+            </span>
           </a>
           <button
             className="workspace-switch"
@@ -637,7 +656,13 @@ export default function App() {
               );
             })}
           </nav>
-          <button className="sidebar-add" onClick={() => setModal("library")}>
+          <button
+            className="sidebar-add"
+            onClick={() => {
+              setMobileMenu(false);
+              setModal("library");
+            }}
+          >
             <Plus size={16} /> Explore building blocks
           </button>
           <div className="sidebar-note">
@@ -651,7 +676,12 @@ export default function App() {
               <br />
               See what takes shape.
             </p>
-            <button onClick={() => setModal("help")}>
+            <button
+              onClick={() => {
+                setMobileMenu(false);
+                setModal("help");
+              }}
+            >
               Take a quick tour <ArrowUpRight size={14} />
             </button>
             <div className="note-art">
@@ -662,17 +692,23 @@ export default function App() {
           </div>
           <div className="sidebar-bottom">
             <span className="local-dot" /> Projects stored locally
-            <button className="help-link" onClick={() => setModal("help")}>
+            <button
+              className="help-link"
+              onClick={() => {
+                setMobileMenu(false);
+                setModal("help");
+              }}
+            >
               <CircleHelp size={16} /> A little guidance <span>↗</span>
             </button>
             <div className="sidebar-credit">
               A space for ideas, by Formlane.<span>v1.0</span>
             </div>
           </div>
-        </aside>
+        </div>
       )}
 
-      <div className="main-shell">
+      <div className="main-shell" inert={mobileMenu}>
         <header className="topbar">
           {!preview ? (
             <>
@@ -1246,8 +1282,7 @@ export default function App() {
         ref={importRef}
         type="file"
         accept=".json,application/json"
-        className="sr-only"
-        tabIndex={-1}
+        hidden
         aria-label="Import Formlane project"
         onChange={(event) => void importProject(event.target.files?.[0])}
       />
@@ -1515,23 +1550,7 @@ export default function App() {
             A playground for visual thinking. Bring it to a meeting, try a
             direction, and see what feels right.
           </p>
-          <figure className="introduction-video">
-            <video
-              aria-label="Introduction to Formlane"
-              controls
-              playsInline
-              preload="metadata"
-              src={introductionVideo}
-            >
-              <a href={introductionVideo}>Open the introduction video</a>
-            </video>
-            <figcaption>
-              <span>1 min 20 sec · Silent video with on-screen captions</span>
-              <a href={introductionVideo} download="formlane-introduction.mp4">
-                <Download size={13} aria-hidden="true" /> Download video
-              </a>
-            </figcaption>
-          </figure>
+          <IntroductionVideo />
           <div className="tour-steps">
             <div>
               <span>01</span>

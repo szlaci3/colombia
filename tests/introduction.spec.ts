@@ -2,6 +2,32 @@ import { test, expect } from "@playwright/test";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
+test("explains a failed video load and retries successfully", async ({
+  page,
+}) => {
+  let blocked = true;
+  await page.route("**/*.mp4", (route) =>
+    blocked ? route.abort() : route.continue(),
+  );
+  await page.goto("/?intro=video");
+  const failure = page.getByRole("alert");
+  await expect(failure).toContainText("video couldn’t load");
+  await expect(
+    page.getByRole("link", { name: "Download video", exact: true }),
+  ).toBeVisible();
+  blocked = false;
+  await page.getByRole("button", { name: "Try again", exact: true }).click();
+  const video = page.locator(".introduction-video video");
+  await expect
+    .poll(() => video.evaluate((element: HTMLVideoElement) => element.duration))
+    .toBe(80.5);
+  await expect(failure).toHaveCount(0);
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await expect(
+    page.getByRole("textbox", { name: "Hero headline", exact: true }),
+  ).toContainText("A slower pace.");
+});
+
 test("watches and downloads the introduction without changing the draft", async ({
   page,
 }) => {

@@ -70,6 +70,20 @@ describe("portable projects", () => {
 });
 
 describe("local persistence", () => {
+  it("shares the selected template without reopening the introduction", () => {
+    const project = createProject();
+    const url = new URL(
+      makeShareUrl(
+        project,
+        "https://formlane.example/?template=kanban&intro=video",
+      ),
+    );
+    expect(url.searchParams.get("template")).toBe("kanban");
+    expect(url.searchParams.has("intro")).toBe(false);
+    expect(loadProject({ getItem: () => null }, url.hash).project).toEqual(
+      project,
+    );
+  });
   it("roundtrips through browser storage", () => {
     const values = new Map<string, string>();
     const storage = {

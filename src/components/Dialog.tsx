@@ -13,6 +13,7 @@ export function Dialog({
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const backdropStart = useRef(false);
   useEffect(() => {
     const dialog = ref.current!;
     const opener = document.activeElement;
@@ -33,7 +34,31 @@ export function Dialog({
         close();
       }}
       onClick={(event) => {
-        if (event.target === ref.current) close();
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const outside =
+          event.clientX < bounds.left ||
+          event.clientX > bounds.right ||
+          event.clientY < bounds.top ||
+          event.clientY > bounds.bottom;
+        if (
+          backdropStart.current &&
+          event.target === event.currentTarget &&
+          outside
+        )
+          close();
+        backdropStart.current = false;
+      }}
+      onPointerDown={(event) => {
+        const bounds = event.currentTarget.getBoundingClientRect();
+        backdropStart.current =
+          event.target === event.currentTarget &&
+          (event.clientX < bounds.left ||
+            event.clientX > bounds.right ||
+            event.clientY < bounds.top ||
+            event.clientY > bounds.bottom);
+      }}
+      onPointerCancel={() => {
+        backdropStart.current = false;
       }}
     >
       <div className="dialog-header">

@@ -18,7 +18,7 @@
     "test:video": "node --test scripts/video-timeline.test.mjs",
     "video:scene": "npm run build && node scripts/render-intro-scene.mjs",
     "video:intro": "npm run build && node scripts/render-intro-scene.mjs --full",
-    "check": "npm run test && npm run test:e2e",
+    "check": "npm run test && npm run test:video && npm run test:e2e",
     "format": "prettier --write src server netlify tests *.ts *.json index.html README.md docs .github"
   },
   "dependencies": {

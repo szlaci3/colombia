@@ -38,6 +38,7 @@ export function Editable({
       ref.current.textContent = value;
   });
   function keyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
     if (event.key === "Enter" && (!multiline || !event.shiftKey)) {
       event.preventDefault();
       event.currentTarget.blur();

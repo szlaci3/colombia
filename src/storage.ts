@@ -38,6 +38,7 @@ export function makeShareUrl(project: Project, href: string): string {
       "This project is too large for a link. Export the project file instead.",
     );
   const url = new URL(href);
+  url.searchParams.delete("intro");
   url.hash = `project=${data}`;
   return url.toString();
 }
