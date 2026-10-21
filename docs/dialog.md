@@ -1,8 +1,8 @@
 # Native voice Dialog
 
-Formlane's **Dialog** is a continuous Gemini native audio-to-audio conversation. Choose **Dialog** → **Start Dialog**, allow microphone access, speak, and pause for Gemini to reply aloud. There is no dictation/Send/Play sequence. **End Dialog**, Escape, or closing the dialog stops microphone capture, closes the connection, and cancels queued audio.
+Formlane's **Dialog** is a continuous Gemini native audio-to-audio conversation. Choose **Dialog** → **Start Dialogue**, allow microphone access, speak, and pause for Gemini to reply aloud. There is no dictation/Send/Play sequence. **Stop Dialogue**, Escape, or closing the dialog stops microphone capture, closes the connection, and cancels queued audio.
 
-Both speakers' transcripts accumulate chronologically, with the newest turn at the bottom. Transcription can arrive before or after its audio; the interface reserves the user's position before the corresponding reply. Speaking while Gemini is responding can interrupt it. Already displayed content stays visible with an Interrupted label. Stopping and reopening keeps the transcript until a page reload. Starting again creates a fresh provider conversation; the earlier transcript remains visible but is not replayed to Gemini.
+Both speakers' transcripts accumulate chronologically, with the newest turn at the bottom. Transcription can arrive before or after its audio; the interface reserves the user's position before the corresponding reply. Speaking while Gemini is responding can interrupt it. Already displayed content stays visible with an Interrupted label. Stopping and reopening keeps the transcript until a page reload. Clicking Start Dialogue clears the previous transcript and creates a fresh provider conversation. The info icon shows guidance on hover, keyboard focus, or tap; stopping and closing do not clear messages.
 
 This first version has no documentation retrieval, screen/project context, typed input, or application tools. The existing **Explore with AI** proposal helper is separate.
 

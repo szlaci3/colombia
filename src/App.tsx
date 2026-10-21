@@ -1316,6 +1316,7 @@ export default function App() {
       {modal === "voice" && (
         <VoiceChat
           messages={voiceMessages}
+          resetTranscript={() => setVoiceMessages([])}
           onMessage={(message) =>
             setVoiceMessages((previous) => {
               const index = previous.findIndex(

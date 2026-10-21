@@ -54,9 +54,11 @@ test("opt-in real Gemini 3.8 Dialog receives speech, both transcripts, and nativ
   await page.goto("/");
   await page.getByRole("button", { name: "Dialog", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Start Dialog", exact: true }),
+    page.getByRole("button", { name: "Start Dialogue", exact: true }),
   ).toBeEnabled();
-  await page.getByRole("button", { name: "Start Dialog", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start Dialogue", exact: true })
+    .click();
   await expect(
     page.getByText("Listening — you can speak", { exact: true }),
   ).toBeVisible({ timeout: 30_000 });
@@ -80,9 +82,11 @@ test("opt-in real Gemini 3.8 Dialog receives speech, both transcripts, and nativ
     }),
   );
   await expect(page.getByRole("alert")).toHaveCount(0);
-  await page.getByRole("button", { name: "End Dialog", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Stop Dialogue", exact: true })
+    .click();
   await expect(
-    page.getByRole("button", { name: "Start Dialog", exact: true }),
+    page.getByRole("button", { name: "Start Dialogue", exact: true }),
   ).toBeEnabled();
   expect(errors).toEqual([]);
 });

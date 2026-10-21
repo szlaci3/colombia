@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { AudioLines, Square } from "lucide-react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { AudioLines, Info, Square } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { VoiceConversation, type VoiceStatus } from "../voice";
 import type { VoiceMessage } from "../voice-protocol";
@@ -7,10 +7,12 @@ import type { VoiceMessage } from "../voice-protocol";
 export function VoiceChat({
   messages,
   onMessage,
+  resetTranscript,
   close,
 }: {
   messages: VoiceMessage[];
   onMessage: (message: VoiceMessage) => void;
+  resetTranscript: () => void;
   close: () => void;
 }) {
   const [availability, setAvailability] = useState<
@@ -18,11 +20,27 @@ export function VoiceChat({
   >("checking");
   const [status, setStatus] = useState<VoiceStatus>("stopped");
   const [error, setError] = useState("");
+  const [infoOpen, setInfoOpen] = useState(false);
+  const infoId = useId();
+  const infoTrigger = useRef<HTMLButtonElement>(null);
+  const infoTooltip = useRef<HTMLDivElement>(null);
   const controller = useRef<VoiceConversation | null>(null);
   const log = useRef<HTMLDivElement>(null);
   const follow = useRef(true);
   const messageCallback = useRef(onMessage);
   messageCallback.current = onMessage;
+
+  useLayoutEffect(() => {
+    const tooltip = infoTooltip.current;
+    const trigger = infoTrigger.current;
+    if (!infoOpen || !tooltip || !trigger) return;
+    // A popover escapes the native dialog's scroll clipping on small screens.
+    tooltip.showPopover?.();
+    const bounds = trigger.getBoundingClientRect();
+    tooltip.style.left = `${Math.max(12, Math.min(bounds.right - tooltip.offsetWidth, innerWidth - tooltip.offsetWidth - 12))}px`;
+    tooltip.style.top = `${Math.max(12, Math.min(bounds.bottom, innerHeight - tooltip.offsetHeight - 12))}px`;
+    return () => tooltip.hidePopover?.();
+  }, [infoOpen]);
 
   useEffect(() => {
     const abort = new AbortController();
@@ -62,6 +80,8 @@ export function VoiceChat({
   function start() {
     setError("");
     controller.current?.stop();
+    resetTranscript();
+    follow.current = true;
     const next = new VoiceConversation({
       onMessage: (message) => messageCallback.current(message),
       onStatus: (value) => {
@@ -94,17 +114,6 @@ export function VoiceChat({
       wide
     >
       <div className="voice-chat">
-        <p className="dialog-description">
-          Talk naturally with Gemini. It hears you and speaks back
-          automatically. Your words and its replies appear below, with the
-          newest message at the bottom.
-        </p>
-        <p className="dialog-fineprint">
-          Starting sends microphone audio directly to Google Gemini. Transcripts
-          stay on this page until you reload; they are not saved in your
-          project. This conversation has no access to your project or
-          application tools.
-        </p>
         <div className="voice-status" role="status">
           {availability === "checking"
             ? "Checking voice availability…"
@@ -116,20 +125,70 @@ export function VoiceChat({
         </div>
         <div className="voice-controls">
           {active ? (
-            <>
-              <button className="button dark" onClick={stop}>
-                <Square size={15} /> End Dialog
-              </button>
-            </>
+            <button className="button dark" onClick={stop}>
+              <Square size={15} /> Stop Dialogue
+            </button>
           ) : (
             <button
               className="button dark"
               disabled={availability !== "ready"}
               onClick={start}
             >
-              <AudioLines size={15} /> Start Dialog
+              <AudioLines size={15} /> Start Dialogue
             </button>
           )}
+          <div
+            className="voice-info"
+            onMouseEnter={() => setInfoOpen(true)}
+            onMouseLeave={() => setInfoOpen(false)}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget))
+                setInfoOpen(false);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && infoOpen) {
+                event.preventDefault();
+                event.stopPropagation();
+                setInfoOpen(false);
+              }
+            }}
+          >
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="About Dialogue"
+              ref={infoTrigger}
+              aria-describedby={infoOpen ? infoId : undefined}
+              onFocus={() => setInfoOpen(true)}
+              onClick={() => setInfoOpen(true)}
+            >
+              <Info size={18} />
+            </button>
+            <div
+              id={infoId}
+              role="tooltip"
+              ref={infoTooltip}
+              popover="manual"
+              hidden={!infoOpen}
+              className="voice-info-tooltip"
+            >
+              <p>
+                Stopping or closing the dialogue releases the microphone and
+                keeps the transcript. Clicking Start Dialogue clears the
+                previous transcript and starts a fresh conversation with Gemini.
+              </p>
+              <p>
+                Speak naturally. Gemini will answer when you stop speaking. Speak
+                again to interrupt.
+              </p>
+              <p>
+                Your microphone audio goes directly to Google Gemini.
+                Transcripts stay on this page until you start again or reload;
+                they are not saved in your project. This conversation has no
+                access to your project or application tools.
+              </p>
+            </div>
+          </div>
         </div>
         {error && (
           <p className="voice-error" role="alert">
@@ -170,16 +229,6 @@ export function VoiceChat({
               </article>
             ))}
         </div>
-        {!messages.some((message) => message.text) && (
-          <p className="voice-empty">
-            Start the conversation, then speak. Pause to let Gemini reply. You
-            can speak again to interrupt.
-          </p>
-        )}
-        <p className="dialog-fineprint">
-          Stopping or closing releases the microphone and keeps the transcript.
-          Starting again opens a fresh conversation with Gemini.
-        </p>
       </div>
     </Dialog>
   );

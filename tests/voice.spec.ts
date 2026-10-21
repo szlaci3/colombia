@@ -78,7 +78,7 @@ async function fixture(page: Page, enabled = true) {
       .send(Buffer.from(JSON.stringify({ serverContent: content })));
   const start = async () => {
     await page
-      .getByRole("button", { name: "Start Dialog", exact: true })
+      .getByRole("button", { name: "Start Dialogue", exact: true })
       .click();
     await expect(
       page.getByText("Listening — you can speak", { exact: true }),
@@ -120,6 +120,16 @@ test("Dialog streams the microphone and native audio automatically, keeps both t
   const mock = await fixture(page);
   await page.goto("/");
   await open(page);
+  await expect(page.locator(".voice-chat > p")).toHaveCount(0);
+  await expect(page.getByRole("tooltip")).not.toBeVisible();
+  await page.getByRole("button", { name: "About Dialogue" }).hover();
+  await expect(page.getByRole("tooltip")).toContainText(
+    "Clicking Start Dialogue clears the previous transcript",
+  );
+  await page
+    .getByRole("button", { name: "Start Dialogue", exact: true })
+    .hover();
+  await expect(page.getByRole("tooltip")).not.toBeVisible();
   await mock.start();
   await expect.poll(mock.packets).toBeGreaterThan(0);
   expect(mock.requests).toEqual([{ setup: voiceSetup }]);
@@ -155,7 +165,9 @@ test("Dialog streams the microphone and native audio automatically, keeps both t
     "Tell me another thing.",
     "Certainly.",
   ]);
-  await page.getByRole("button", { name: "End Dialog", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Stop Dialogue", exact: true })
+    .click();
   await expect.poll(() => tracksEnded(page)).toBe(true);
   await page.getByRole("button", { name: "Close dialog" }).click();
   await open(page);
@@ -166,7 +178,7 @@ test("Dialog streams the microphone and native audio automatically, keeps both t
     "Certainly.",
   ]);
   await expect(
-    page.getByRole("button", { name: "Start Dialog", exact: true }),
+    page.getByRole("button", { name: "Start Dialogue", exact: true }),
   ).toBeEnabled();
   expect(mock.tokenRequests()).toBe(1);
   expect(
@@ -176,6 +188,17 @@ test("Dialog streams the microphone and native audio automatically, keeps both t
       ),
     ),
   ).toBe(false);
+  await mock.start();
+  await expect(page.locator(".voice-message")).toHaveCount(0);
+  mock.send({
+    inputTranscription: { text: "Fresh question" },
+    outputTranscription: { text: "Fresh answer" },
+    turnComplete: true,
+  });
+  await expect(page.locator(".voice-message p")).toHaveText([
+    "Fresh question",
+    "Fresh answer",
+  ]);
 });
 
 test("barge-in stops queued playback, labels the old answer Interrupted, and appends the next turn", async ({
@@ -185,6 +208,7 @@ test("barge-in stops queued playback, labels the old answer Interrupted, and app
   await page.goto("/");
   await open(page);
   await mock.start();
+  await expect(page.locator(".voice-message")).toHaveCount(0);
   mock.send({
     inputTranscription: { text: "Start a story." },
     outputTranscription: { text: "Once upon a time" },
@@ -241,7 +265,7 @@ test("reports a lost connection, releases audio, and keeps the partial transcrip
   mock.sockets[0].close({ code: 1011, reason: "test failure" });
   await expect(page.getByRole("alert")).toContainText("connection ended");
   await expect(
-    page.getByRole("button", { name: "Start Dialog", exact: true }),
+    page.getByRole("button", { name: "Start Dialogue", exact: true }),
   ).toBeEnabled();
   await expect.poll(() => tracksEnded(page)).toBe(true);
   await expect(
@@ -254,8 +278,6 @@ test("reports a lost connection, releases audio, and keeps the partial transcrip
     turnComplete: true,
   });
   await expect(page.locator(".voice-message p")).toHaveText([
-    "Keep my question",
-    "Keep this partial answer",
     "A new session",
     "Still here",
   ]);
@@ -271,12 +293,14 @@ test("microphone denial is actionable and does not request a provider token", as
   });
   await page.goto("/");
   await open(page);
-  await page.getByRole("button", { name: "Start Dialog", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start Dialogue", exact: true })
+    .click();
   await expect(page.getByRole("alert")).toContainText(
     "Microphone permission was denied",
   );
   await expect(
-    page.getByRole("button", { name: "Start Dialog", exact: true }),
+    page.getByRole("button", { name: "Start Dialogue", exact: true }),
   ).toBeEnabled();
   expect(mock.tokenRequests()).toBe(0);
 });
@@ -294,7 +318,7 @@ test("unconfigured Dialog remains disabled and the real local endpoint rejects c
     }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Start Dialog", exact: true }),
+    page.getByRole("button", { name: "Start Dialogue", exact: true }),
   ).toBeDisabled();
   expect(mock.tokenRequests()).toBe(0);
   const response = await request.post("/api/voice-token", {
@@ -307,10 +331,22 @@ test("unconfigured Dialog remains disabled and the real local endpoint rejects c
 test("Dialog is accessible on a phone and renders transcript content as text", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 320, height: 568 });
   const mock = await fixture(page);
   await page.goto("/");
   await open(page);
+  await page.getByRole("button", { name: "About Dialogue" }).focus();
+  await expect(page.getByRole("tooltip")).toBeVisible();
+  const infoBounds = await page.getByRole("tooltip").boundingBox();
+  expect(infoBounds!.x).toBeGreaterThanOrEqual(0);
+  expect(infoBounds!.x + infoBounds!.width).toBeLessThanOrEqual(320);
+  expect(infoBounds!.y + infoBounds!.height).toBeLessThanOrEqual(568);
+  expect(
+    (await new AxeBuilder({ page }).include("dialog").analyze()).violations,
+  ).toEqual([]);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("tooltip")).not.toBeVisible();
+  await expect(page.getByRole("dialog")).toBeVisible();
   await mock.start();
   const text = '<img src=x onerror="window.voiceInjected=true">';
   mock.send({
@@ -322,7 +358,7 @@ test("Dialog is accessible on a phone and renders transcript content as text", a
   expect(await page.evaluate(() => "voiceInjected" in window)).toBe(false);
   const bounds = await page.getByRole("dialog").boundingBox();
   expect(bounds!.x).toBeGreaterThanOrEqual(0);
-  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320);
   expect(
     (await new AxeBuilder({ page }).include("dialog").analyze()).violations,
   ).toEqual([]);
