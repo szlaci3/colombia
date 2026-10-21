@@ -16,6 +16,7 @@
     "test:e2e": "playwright test",
     "test:deployment": "playwright test tests/deployment.spec.ts",
     "video:scene": "npm run build && node scripts/render-intro-scene.mjs",
+    "video:intro": "npm run build && node scripts/render-intro-scene.mjs --full",
     "check": "npm run test && npm run test:e2e",
     "format": "prettier --write src server netlify tests *.ts *.json index.html README.md docs .github"
   },

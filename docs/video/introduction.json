@@ -1,0 +1,90 @@
+{
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "duration": 40,
+  "initialState": "overview",
+  "captions": [
+    {
+      "start": 0,
+      "end": 4,
+      "lines": [
+        "Formlane turns an idea into a prototype",
+        "you can explore and show to others."
+      ]
+    },
+    {
+      "start": 4,
+      "end": 8,
+      "lines": ["Choose a theme. It defines colors and shapes."]
+    },
+    {
+      "start": 8,
+      "end": 12,
+      "lines": [
+        "Choose a template:",
+        "Webshop, blog, dashboard or something else."
+      ]
+    },
+    { "start": 12, "end": 16, "lines": ["Click any text to change it."] },
+    {
+      "start": 16,
+      "end": 19,
+      "lines": ["Paste your notes to bring in your own content."]
+    },
+    {
+      "start": 19,
+      "end": 22,
+      "lines": ["Choose the sections you want to add."]
+    },
+    { "start": 22, "end": 26, "lines": ["Ask AI to help improve your text."] },
+    {
+      "start": 26,
+      "end": 30,
+      "lines": ["Review the suggestion, then choose whether to apply it."]
+    },
+    {
+      "start": 30,
+      "end": 34,
+      "lines": ["Check how your idea looks on a phone."]
+    },
+    {
+      "start": 34,
+      "end": 37,
+      "lines": ["Use Present to show your prototype without editing controls."]
+    },
+    {
+      "start": 37,
+      "end": 40,
+      "lines": ["Try your own idea at formlane.netlify.app."]
+    }
+  ],
+  "actions": [
+    { "time": 4, "state": "grove-webshop" },
+    { "time": 5.4, "target": "theme", "state": "tide-webshop" },
+    { "time": 8.5, "target": "webshop", "state": "tide-webshop" },
+    { "time": 9.5, "target": "blog", "state": "tide-blog" },
+    { "time": 10.7, "target": "dashboard", "state": "tide-dashboard" },
+    { "time": 12, "state": "edit-ready" },
+    { "time": 12.9, "target": "headline", "state": "headline-active" },
+    { "time": 13.7, "state": "headline-edited" },
+    { "time": 16, "state": "content-ready" },
+    { "time": 16.5, "target": "import", "state": "import-dialog" },
+    { "time": 16.9, "target": "page-content", "state": "content-dialog" },
+    { "time": 17.3, "target": "paste", "state": "markdown-dialog" },
+    { "time": 17.7, "target": "notes", "state": "notes-pasted" },
+    { "time": 18.7, "target": "prepare", "state": "content-review" },
+    { "time": 20.6, "target": "add-content", "state": "content-added" },
+    { "time": 22, "state": "assistant-ready" },
+    { "time": 22.6, "target": "assistant", "state": "assistant-dialog" },
+    { "time": 23.3, "target": "prompt", "state": "assistant-prompt" },
+    { "time": 24.5, "target": "generate", "state": "assistant-generating" },
+    { "time": 26, "state": "assistant-review" },
+    { "time": 28.5, "target": "apply", "state": "assistant-applied" },
+    { "time": 30, "state": "preview-ready" },
+    { "time": 30.8, "target": "mobile", "state": "mobile-preview" },
+    { "time": 34, "state": "present-ready" },
+    { "time": 34.7, "target": "present", "state": "presentation" },
+    { "time": 37, "state": "end-card" }
+  ]
+}
