@@ -3,6 +3,7 @@ import { assistantContext, proposalSchema } from "../src/assistant";
 import { createProject } from "../src/model";
 import {
   AssistantError,
+  assistantSettings,
   createAssistantHandler,
   proposeEdits,
   proposalJsonSchema,
@@ -13,7 +14,7 @@ import { config } from "../netlify/functions/assistant.mts";
 const settings: AssistantSettings = {
   enabled: true,
   apiKey: "server-test-secret",
-  model: "gemini-3.8-flash",
+  model: "gemini-3.5-flash-lite",
 };
 const input = () => ({
   prompt: "A clearer brand name",
@@ -35,17 +36,28 @@ const request = (data: unknown = input(), extra: RequestInit = {}) =>
   });
 const completed = (text: string = JSON.stringify(proposal)) =>
   Response.json({
-    candidates: [
+    status: "completed",
+    steps: [
+      { type: "thought", content: [{ type: "text", text: "Ignored thought" }] },
       {
-        finishReason: "STOP",
-        content: {
-          role: "model",
-          parts: [{ text: "Ignored thought", thought: true }, { text }],
-        },
+        type: "model_output",
+        content: [{ type: "text", text }],
       },
     ],
   });
 describe("server-side AI proposals", () => {
+  it("defaults to the live-verified Flash-Lite model and respects explicit overrides", () => {
+    const original = process.env.FORMLANE_ASSISTANT_MODEL;
+    try {
+      delete process.env.FORMLANE_ASSISTANT_MODEL;
+      expect(assistantSettings().model).toBe("gemini-3.5-flash-lite");
+      process.env.FORMLANE_ASSISTANT_MODEL = "gemini-3.8-flash";
+      expect(assistantSettings().model).toBe("gemini-3.8-flash");
+    } finally {
+      if (original === undefined) delete process.env.FORMLANE_ASSISTANT_MODEL;
+      else process.env.FORMLANE_ASSISTANT_MODEL = original;
+    }
+  });
   it("publishes only availability and never configuration secrets", async () => {
     const handler = createAssistantHandler({ settings: () => settings });
     const response = await handler(
@@ -208,18 +220,19 @@ describe("server-side AI proposals", () => {
       expect(await response.text()).not.toContain("server-test-secret");
     }
   });
-  it("uses the fixed Gemini endpoint, server authentication, a JSON schema, disabled logging, and bounded output", async () => {
+  it("uses the Interactions contract, server authentication, a JSON schema, stateless requests, and bounded output", async () => {
     const fetcher = vi.fn(async () => completed());
     const signal = new AbortController().signal;
+    const data = input();
     expect(
-      await proposeEdits(input(), settings, signal, fetcher as typeof fetch),
+      await proposeEdits(data, settings, signal, fetcher as typeof fetch),
     ).toEqual(proposal);
     const [url, options] = fetcher.mock.calls[0] as unknown as [
       string,
       RequestInit,
     ];
     expect(url).toBe(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/interactions",
     );
     expect(options.headers).toHaveProperty(
       "x-goog-api-key",
@@ -229,25 +242,110 @@ describe("server-side AI proposals", () => {
     const body = JSON.parse(options.body as string);
     expect(body).toMatchObject({
       store: false,
-      generationConfig: {
-        maxOutputTokens: 2400,
-        thinkingConfig: { thinkingLevel: "LOW", includeThoughts: false },
-        responseFormat: { text: { mimeType: "APPLICATION_JSON" } },
+      model: "gemini-3.5-flash-lite",
+      generation_config: {
+        max_output_tokens: 2400,
+        thinking_level: "low",
+        thinking_summaries: "none",
       },
+      response_format: { type: "text", mime_type: "application/json" },
     });
     expect(
-      body.generationConfig.responseFormat.text.schema.additionalProperties,
-    ).toBe(false);
+      body.response_format.schema.properties.operations.items.properties.type
+        .enum,
+    ).toContain("edit_text");
     expect(body.tools).toBeUndefined();
-    expect(body.systemInstruction.parts[0].text).toContain("Context strings");
-    expect(body.contents[0].parts[0].text).not.toContain("server-test-secret");
+    expect(body.agent).toBeUndefined();
+    expect(body.system_instruction).toContain("Context strings");
+    expect(body.input).not.toContain("server-test-secret");
+    expect(JSON.parse(body.input)).toEqual(data);
+  });
+  it("allows generation beyond the former 25-second cutoff but aborts before Netlify's 60-second limit", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(AbortSignal, "timeout").mockImplementation((milliseconds) => {
+      const controller = new AbortController();
+      setTimeout(
+        () => controller.abort(new DOMException("slow", "TimeoutError")),
+        milliseconds,
+      );
+      return controller.signal;
+    });
+    try {
+      const handler = createAssistantHandler({
+        settings: () => settings,
+        propose: () =>
+          new Promise((resolve) => setTimeout(() => resolve(proposal), 26_000)),
+      });
+      const response = handler(request());
+      await vi.advanceTimersByTimeAsync(26_000);
+      expect((await response).status).toBe(200);
+      const stalled = createAssistantHandler({
+        settings: () => settings,
+        propose: (_input, _settings, signal) =>
+          new Promise((_resolve, reject) => {
+            signal.addEventListener("abort", () => reject(signal.reason), {
+              once: true,
+            });
+          }),
+      });
+      const timeout = stalled(request());
+      await vi.advanceTimersByTimeAsync(49_000);
+      let settled = false;
+      void timeout.then(() => {
+        settled = true;
+      });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(settled).toBe(false);
+      await vi.advanceTimersByTimeAsync(1000);
+      expect((await timeout).status).toBe(504);
+    } finally {
+      vi.restoreAllMocks();
+      vi.useRealTimers();
+    }
   });
   it("handles refusals, incomplete responses, malformed JSON and unsupported model output", async () => {
     for (const response of [
-      Response.json({ candidates: [{ finishReason: "MAX_TOKENS" }] }),
-      Response.json({ promptFeedback: { blockReason: "SAFETY" } }),
-      Response.json({ candidates: [{ finishReason: "SAFETY" }] }),
+      Response.json({ status: "incomplete", steps: [] }),
+      Response.json({ status: "failed", steps: [] }),
+      Response.json({
+        status: "requires_action",
+        steps: [{ type: "function_call" }],
+      }),
+      Response.json({
+        status: "completed",
+        steps: [{ type: "model_output", content: [{ type: "refusal" }] }],
+      }),
+      Response.json({
+        status: "completed",
+        steps: [
+          {
+            type: "thought",
+            content: [{ type: "text", text: JSON.stringify(proposal) }],
+          },
+        ],
+      }),
+      Response.json({
+        status: "completed",
+        steps: [
+          { type: "function_call" },
+          {
+            type: "model_output",
+            content: [{ type: "text", text: JSON.stringify(proposal) }],
+          },
+        ],
+      }),
       completed("{broken"),
+      completed(
+        JSON.stringify({ ...proposal, operations: [{ type: "set_brand" }] }),
+      ),
+      completed(
+        JSON.stringify({
+          ...proposal,
+          operations: [
+            { type: "set_brand", value: "Example", blockId: "extra" },
+          ],
+        }),
+      ),
       completed(
         JSON.stringify({ summary: "Oops", operations: [{ type: "execute" }] }),
       ),
@@ -308,21 +406,31 @@ describe("server-side AI proposals", () => {
     ).rejects.toThrow(/too large/);
     expect(cancel).toHaveBeenCalled();
   });
-  it("sends supported literal enums and keeps the wire schema free of unsupported string keywords", () => {
+  it("uses a shallow operation grammar while retaining operation-specific field guidance", () => {
     const schema = proposalJsonSchema() as {
       properties: {
         operations: {
-          items: { anyOf: { properties: { type: { enum: string[] } } }[] };
+          items: {
+            properties: {
+              type: { enum: string[] };
+              afterBlockId: { type: string[] };
+            };
+            description: string;
+          };
         };
       };
     };
+    expect(schema.properties.operations.items.properties.type.enum).toContain(
+      "edit_text",
+    );
     expect(
-      schema.properties.operations.items.anyOf.map(
-        (branch) => branch.properties.type.enum[0],
-      ),
-    ).toContain("edit_text");
+      schema.properties.operations.items.properties.afterBlockId.type,
+    ).toEqual(["string", "null"]);
+    expect(schema.properties.operations.items.description).toContain(
+      "edit_text requires type, blockId, field, value",
+    );
     expect(JSON.stringify(schema)).not.toMatch(
-      /"const"|"pattern"|"minLength"|"maxLength"|"\$schema"/,
+      /"const"|"pattern"|"minLength"|"maxLength"|"\$schema"|"anyOf"|"additionalProperties"|"minimum"|"maximum"|"minItems"|"maxItems"/,
     );
   });
   it("returns a safe connection error for a transport failure and rejects malformed message envelopes", async () => {
@@ -336,13 +444,14 @@ describe("server-side AI proposals", () => {
         }) as typeof fetch,
       ),
     ).rejects.toThrow(/could not connect/);
-    for (const candidates of [[null], [{ finishReason: "STOP", content: {} }]])
+    for (const steps of [[null], [{ type: "model_output", content: {} }]])
       await expect(
         proposeEdits(
           input(),
           settings,
           new AbortController().signal,
-          (async () => Response.json({ candidates })) as typeof fetch,
+          (async () =>
+            Response.json({ status: "completed", steps })) as typeof fetch,
         ),
       ).rejects.toBeInstanceOf(AssistantError);
   });

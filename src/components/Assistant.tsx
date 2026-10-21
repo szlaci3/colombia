@@ -118,7 +118,7 @@ export function Assistant({
         body,
         signal: AbortSignal.any([
           controller.signal,
-          AbortSignal.timeout(30_000),
+          AbortSignal.timeout(55_000),
         ]),
       });
       if (request.current !== controller) return;

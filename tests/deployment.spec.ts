@@ -58,7 +58,7 @@ if (process.env.FORMLANE_ASSISTANT_LIVE === "true") {
   test("gets a real provider proposal through the hosted assistant and applies it with undo", async ({
     page,
   }) => {
-    test.setTimeout(45_000);
+    test.setTimeout(75_000);
     await page.goto("/");
     await page
       .getByRole("button", { name: "Explore with AI", exact: true })
@@ -78,7 +78,7 @@ if (process.env.FORMLANE_ASSISTANT_LIVE === "true") {
       name: "Apply 1 change",
       exact: true,
     });
-    await expect(apply).toBeVisible({ timeout: 32_000 });
+    await expect(apply).toBeVisible({ timeout: 60_000 });
     await expect(page.locator(".assistant-review")).toContainText(
       "Workshop Example",
     );
