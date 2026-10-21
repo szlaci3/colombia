@@ -317,6 +317,33 @@
   gap: 15px;
   flex-shrink: 0;
 }
+.introduction-video {
+  margin: 18px 0 25px;
+}
+.introduction-video video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  background: #111;
+}
+.introduction-video figcaption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  color: #5f6c54;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.introduction-video figcaption a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: underline;
+}
 .style-import-form > label {
   display: block;
   font-size: 12px;

@@ -2,6 +2,8 @@
 
 The complete [80.5-second introduction](formlane-introduction.mp4) explains visible actions in plain language. The [12.67-second excerpt](formlane-theme-template.mp4) contains the theme/template scene with the user's exact captions.
 
+Formlane exposes the full video in **How it works**, with native playback controls and a **Download video** link. The [direct introduction link](https://formlane.netlify.app/?intro=video) opens that dialog immediately. Vite publishes the MP4 as a versioned static asset referenced by the app; the browser only loads it when the dialog is opened. Closing the dialog removes the player and stops playback.
+
 Both are silent, 1920 × 1080 H.264 MP4s at 30 fps. White subtitles sit at the bottom of the picture. Each line has its own tightly fitted black rectangle at 50% opacity; there is no full-width caption bar. The controls being clicked stay readable above the subtitle text.
 
 The opening workspace, theme, and template scenes run at 75% of the original speed. Editing and all subsequent scenes run at 50%. Each demonstrated click adds a half-second feedback pause: the screen holds its current state until the click animation has finished, then the action takes effect. The title edit shows an empty field, real keystrokes building `T`, `Th`, through `Thought`, and then the completed title.

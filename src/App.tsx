@@ -89,6 +89,7 @@ import {
   type ThemeId,
 } from "./model";
 import { makeShareUrl, MAX_PROJECT_SIZE, parseProject } from "./storage";
+import introductionVideo from "../docs/video/formlane-introduction.mp4?url";
 
 const pages = {
   webshop: {
@@ -219,7 +220,11 @@ export default function App() {
     | "projects"
     | "assistant"
     | null
-  >(null);
+  >(() =>
+    new URLSearchParams(location.search).get("intro") === "video"
+      ? "help"
+      : null,
+  );
   const [toast, setToast] = useState("");
   const [notice, setNotice] = useState(initial.notice ?? "");
   const [autoSave, setAutoSave] = useState(
@@ -815,7 +820,8 @@ export default function App() {
                   <span>
                     <Play size={13} fill="currentColor" />
                   </span>{" "}
-                  How it works <span className="tour-length">3 steps</span>
+                  How it works{" "}
+                  <span className="tour-length">Video + 3 steps</span>
                 </button>
               </div>
             </div>
@@ -1509,6 +1515,23 @@ export default function App() {
             A playground for visual thinking. Bring it to a meeting, try a
             direction, and see what feels right.
           </p>
+          <figure className="introduction-video">
+            <video
+              aria-label="Introduction to Formlane"
+              controls
+              playsInline
+              preload="metadata"
+              src={introductionVideo}
+            >
+              <a href={introductionVideo}>Open the introduction video</a>
+            </video>
+            <figcaption>
+              <span>1 min 20 sec · Silent video with on-screen captions</span>
+              <a href={introductionVideo} download="formlane-introduction.mp4">
+                <Download size={13} aria-hidden="true" /> Download video
+              </a>
+            </figcaption>
+          </figure>
           <div className="tour-steps">
             <div>
               <span>01</span>
