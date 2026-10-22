@@ -1,6 +1,6 @@
 # Documentation review record
 
-Status: draft awaiting owner review. Prepared 2026-10-21 from checkout `cb4f7ec` (`Harden navigation, editing, dialogs, and video recovery`). The working tree was clean before documentation work began.
+Status: use as chatbot context authorized by the owner's 2026-10-22 request to put the reviewed documentation directly into its system context if appropriate. The original checklist below is retained as the accuracy-review record; this authorization does not assert that every checklist item received a separate recorded sign-off. Prepared 2026-10-21 from checkout `cb4f7ec` (`Harden navigation, editing, dialogs, and video recovery`). The working tree was clean before documentation work began.
 
 The [Formlane product guide](formlane-guide.md) is the proposed user-facing reference and future chatbot knowledge source. This record keeps engineering evidence and review decisions outside that knowledge document. Existing README/architecture notes were used for orientation; product claims were checked against implementation and relevant test source. Reading tests is evidence of intended coverage, not a claim that those tests ran during this documentation pass. No hosted app, live provider, or browser interaction was verified in this pass.
 
@@ -33,7 +33,7 @@ Links lead to the implementation and test files in this repository. Symbols iden
 - [ ] Confirm that the existing proposal helper and the future conversational chatbot are described distinctly.
 - [ ] Record corrections and approve the revised guide before treating it as reviewed chatbot knowledge.
 
-Approval and corrections: pending owner review. Do not interpret this generated draft or a passing documentation check as owner approval.
+Approval and corrections: on 2026-10-22 the owner requested direct system-context inclusion of the reviewed documentation, subject to evaluating that approach. The guide is now used for that purpose. Automated checks alone do not constitute owner approval.
 
 ## Documentation validation
 
@@ -46,10 +46,12 @@ The documentation-only checks on 2026-10-21 verify Prettier formatting, relative
 3. Start by evaluating direct system-context inclusion of the approved product guide. Measure its actual token usage with the selected model and test answer accuracy and session behavior. Add RAG only if document size, relevance, update needs, or measured answer quality justify it. No vector store or retrieval pipeline is introduced by this milestone.
 4. Add application tools later so the conversational chatbot can perform Formlane operations. The existing validated proposal operations are a useful implementation reference, but they are not tools connected to a voice chatbot today.
 
-Only item 1 is implementation scope for this change. No chatbot instructions have been wired into the existing assistant, no voice model has been configured, and no new data is sent to a provider.
+These were the milestones for the original documentation-only change. Subsequent implementation is recorded below and in [Dialog notes](dialog.md).
 
 ## Maintenance
 
 Subsequent update, 2026-10-21: the guide now describes the local native voice Dialog added after this original documentation review. [Dialog implementation notes](dialog.md) record its source boundaries, Google references, setup, controlled test results, and separate successful real Gemini 3.8 browser check. Documentation context/retrieval and application tools remain deferred. This update does not constitute owner approval of the product guide.
+
+Subsequent update, 2026-10-22: following the owner's request, Dialog now includes the complete product guide in its system instructions. `server/voice-context.ts` loads the canonical Markdown, `server/voice.ts` locks the same setup into the token and returns it to the browser, and `netlify.toml` packages the guide with the voice function. The guide's Dialog section and the info tooltip now describe product knowledge while retaining the absence of screen/project access and application tools. Review notes, architecture, and roadmap are excluded from model context. Direct inclusion was chosen for this single small reference; retrieval remains deferred. This does not establish hosted behavior.
 
 Keep stable product facts and workflows in `formlane-guide.md`; keep deployment diagnostics, evidence, and planning in supporting documents. After behavior changes, update the guide and corresponding source-map entry together and repeat owner review where the meaning changes. Record the inspected code revision and distinguish source inspection, automated execution, browser checks, and hosted verification.

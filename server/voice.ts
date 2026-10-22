@@ -1,4 +1,5 @@
-import { voiceSetup, VOICE_MODEL } from "../src/voice-protocol.ts";
+import { VOICE_MODEL } from "../src/voice-protocol.ts";
+import { voiceSetup } from "./voice-context.ts";
 
 export type VoiceSettings = { enabled: boolean; apiKey: string };
 export const voiceSettings = (): VoiceSettings => ({

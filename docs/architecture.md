@@ -2,7 +2,7 @@
 
 ## Native voice Dialog
 
-The separate [native Dialog](dialog.md) uses `gemini-3.8-live` audio-to-audio over a browser-to-Google WebSocket. A same-origin server function issues a short-lived single-use token with the complete setup locked; the permanent key stays server-side. AudioWorklet capture, PCM encoding/playback, binary protocol handling, interruption, and transcript grouping live in the `src/voice*` modules. App retains chronological transcript messages in memory when the dialog closes; they never enter project storage or exports. This first version has no document context/retrieval or application tools, and does not replace the reviewed proposal assistant. Talker's working Dialog was inspected read-only as a reference.
+The separate [native Dialog](dialog.md) uses `gemini-3.8-live` audio-to-audio over a browser-to-Google WebSocket. A same-origin server function issues a short-lived single-use token with the complete setup locked; the permanent key stays server-side. `server/voice-context.ts` reads the product guide packaged with the voice function and includes it directly in the constrained system instructions. This gives product knowledge without retrieval or access to the open project. AudioWorklet capture, PCM encoding/playback, binary protocol handling, interruption, and transcript grouping live in the `src/voice*` modules. App retains chronological transcript messages in memory when the dialog closes; they never enter project storage or exports. Dialog has no application tools and does not replace the reviewed proposal assistant. Talker's working Dialog was inspected read-only as a reference.
 
 ## State and rendering
 

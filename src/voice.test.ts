@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { PcmEncoder, decodePcm, type VoiceAudio } from "./voice-audio";
 import { VoiceConversation } from "./voice";
 import { VoiceTranscript } from "./voice-transcript";
-import { voiceSetup, type VoiceMessage } from "./voice-protocol";
+import type { VoiceMessage } from "./voice-protocol";
+import { voiceSetup } from "../server/voice-context";
 
 function transcriptStore() {
   const messages: VoiceMessage[] = [];

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import { config } from "../netlify/functions/voice-token.mts";
 import { createVoiceHandler, voiceSettings, voiceTokenPayload } from "./voice";
 
@@ -37,6 +38,17 @@ describe("native Dialog token endpoint", () => {
     expect(Date.parse(payload.newSessionExpireTime) - now).toBe(60_000);
     expect(Date.parse(payload.expireTime) - now).toBe(30 * 60_000);
     expect(payload.fieldMask).toBeUndefined();
+    // Google constrains exactly the setup the browser will send, including
+    // the complete current guide rather than a separately maintained summary.
+    expect(payload.bidiGenerateContentSetup).toEqual(body.setup);
+    const parts = body.setup.systemInstruction.parts;
+    expect(parts[1].text).toBe(
+      `<formlane_product_guide>\n${readFileSync("docs/formlane-guide.md", "utf8").trim()}\n</formlane_product_guide>`,
+    );
+    expect(parts[0].text).toContain("You cannot see the screen");
+    expect(parts[0].text).toContain(
+      "You have no browsing, retrieval, or application tools",
+    );
     expect(body.setup).toMatchObject({
       model: "models/gemini-3.8-live",
       generationConfig: { responseModalities: ["AUDIO"] },

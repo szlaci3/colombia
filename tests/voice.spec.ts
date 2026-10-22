@@ -1,6 +1,6 @@
 import { test, expect, type Page, type WebSocketRoute } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { voiceSetup } from "../src/voice-protocol";
+import { voiceSetup } from "../server/voice-context";
 
 test.use({
   permissions: ["microphone"],

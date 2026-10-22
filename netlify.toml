@@ -8,3 +8,6 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+
+[functions.voice-token]
+  included_files = ["docs/formlane-guide.md"]

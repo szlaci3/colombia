@@ -6,12 +6,12 @@ The finish line is a portfolio-ready release. Each milestone includes automated 
 
 Requested 2026-10-21. These extend the existing reviewed AI editor helper; milestone 4 below records that earlier helper, not completion of a conversational chatbot.
 
-1. [ ] **Document the actual application:** inspect the source, produce the [product guide](formlane-guide.md), and obtain owner review for accuracy. **Draft ready; owner review pending.** See the [source map and review checklist](documentation-review.md).
-2. [ ] **Start with a native voice Dialog:** updated scope 2026-10-21: first achieve continuous `gemini-3.8-live` audio-to-audio conversation with visible chronological user/AI transcripts, using Talker's Dialog as a read-only reference. Local implementation, 174 unit tests, four video timing tests, all 92 ordinary browser tests (including six Dialog tests), and a separate real local Chromium/Gemini 3.8 audio/transcript exchange passed. Manual microphone/speaker and hosted verification remain pending. See [Dialog setup and verification](dialog.md). Documentation context/retrieval, possible typed input, and application tools follow later.
-3. [ ] **Add retrieval only if needed:** evaluate the approved guide directly in system context first; introduce RAG only when size, relevance, maintenance, or measured quality warrants it.
+1. [x] **Document the actual application:** inspect the source and produce the [product guide](formlane-guide.md). On 2026-10-22 the owner requested using the reviewed documentation as chatbot context. See the [source map and review record](documentation-review.md).
+2. [ ] **Start with a native voice Dialog:** updated scope 2026-10-21: first achieve continuous `gemini-3.8-live` audio-to-audio conversation with visible chronological user/AI transcripts, using Talker's Dialog as a read-only reference. Local implementation, 174 unit tests, four video timing tests, all 92 ordinary browser tests (including six Dialog tests), and a separate real local Chromium/Gemini 3.8 audio/transcript exchange passed. Manual microphone/speaker and hosted verification remain pending. See [Dialog setup and verification](dialog.md). Direct product-guide context was added on 2026-10-22; retrieval, possible typed input, and application tools remain later work.
+3. [ ] **Add retrieval only if needed:** the guide is now included directly in system context (2026-10-22); introduce RAG only when size, relevance, maintenance, or measured quality warrants it.
 4. [ ] **Add application tools later:** allow the conversational chatbot to perform Formlane operations through explicit application integrations.
 
-The initial documentation draft is followed by the native Dialog implementation. Retrieval and conversational application tools are not implemented. The approved product documentation is not yet supplied to the voice model.
+The native Dialog now receives the complete product guide in its constrained system instructions. Retrieval and conversational application tools are not implemented. Typed input, manual microphone/speaker checks, and hosted verification remain pending.
 
 ## Portfolio release milestones
 

@@ -4,26 +4,6 @@ export const VOICE_MODEL = "gemini-3.8-live";
 export const VOICE_SOCKET =
   "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained";
 
-export const voiceSetup = {
-  model: `models/${VOICE_MODEL}`,
-  generationConfig: {
-    responseModalities: ["AUDIO"],
-    speechConfig: {
-      voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } },
-    },
-  },
-  inputAudioTranscription: {},
-  outputAudioTranscription: {},
-  contextWindowCompression: { slidingWindow: {} },
-  systemInstruction: {
-    parts: [
-      {
-        text: "You are a helpful voice conversation partner in Formlane. Reply concisely and naturally in the user's language. You do not have access to the screen, project, documentation, or application tools. Never claim to have inspected or changed anything in Formlane. Ask for clarification when needed.",
-      },
-    ],
-  },
-};
-
 export const voiceTokenSchema = z.object({
   token: z.string().startsWith("auth_tokens/").max(4096),
   // The complete setup is locked server-side when issuing the token.

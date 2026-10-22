@@ -1,6 +1,6 @@
 # Formlane product guide
 
-Draft for owner review. Initially inspected against application source at `cb4f7ec` on 2026-10-21; updated for the subsequent native Dialog implementation. This describes the local source; it does not establish what is currently deployed. The [documentation review](documentation-review.md) maps the original claims to code; [Dialog notes](dialog.md) cover the new voice implementation and verification boundaries.
+Product reference used directly in Dialog's system context. Initially inspected against application source at `cb4f7ec` on 2026-10-21; updated for the native Dialog and its documentation context on 2026-10-22. This describes the local source; it does not establish what is currently deployed. The [documentation review](documentation-review.md) maps the original claims to code; [Dialog notes](dialog.md) cover the voice implementation and verification boundaries.
 
 ## What Formlane does
 
@@ -148,4 +148,4 @@ Choose **Dialog** → **Start Dialogue**, allow microphone access, speak, and pa
 
 **Stop Dialogue**, Escape, or closing stops audio and releases the microphone. Reopening keeps the transcript until reload; clicking Start Dialogue clears the previous transcript and opens a fresh provider conversation. The info icon explains this behavior on hover, keyboard focus, or tap. Dialog is independently enabled by the server owner; disabled or unavailable connections show a status/error. It requires HTTPS or localhost and browser microphone/AudioWorklet support. See [Dialog setup and limits](dialog.md).
 
-The first Dialog has no documentation context/retrieval, screen/project access, typed input, or application tools. It should not claim to see or change the project. The **Explore with AI** proposal workflow remains separate. After review, this guide can supply product knowledge in a later stage. Evaluate direct context inclusion before adding RAG.
+Dialog receives this product guide directly in its system context at the start of each conversation, so it can explain Formlane's features, workflows, privacy, and limits. It has no retrieval, screen/project access, typed input, or application tools. It cannot see or change the open project; ask it for guidance and perform the steps in the editor. The **Explore with AI** proposal workflow remains separate. Guide updates require a server restart locally or a redeploy when hosted; a new conversation receives the updated guide.

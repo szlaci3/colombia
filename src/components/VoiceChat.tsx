@@ -178,14 +178,15 @@ export function VoiceChat({
                 previous transcript and starts a fresh conversation with Gemini.
               </p>
               <p>
-                Speak naturally. Gemini will answer when you stop speaking. Speak
-                again to interrupt.
+                Speak naturally. Gemini will answer when you stop speaking.
+                Speak again to interrupt.
               </p>
               <p>
                 Your microphone audio goes directly to Google Gemini.
                 Transcripts stay on this page until you start again or reload;
-                they are not saved in your project. This conversation has no
-                access to your project or application tools.
+                they are not saved in your project. Gemini has the Formlane
+                product guide to explain features and workflows. This
+                conversation has no access to your project or application tools.
               </p>
             </div>
           </div>
